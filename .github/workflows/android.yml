@@ -33,7 +33,13 @@ jobs:
             exit 1
           }
       - name: Test APK
-        run: cd android && ./gradlew assembleDebug
+        run: |
+          cd android
+          ./gradlew assembleDebug --console=plain > "$RUNNER_TEMP/gradle.log" 2>&1 || {
+            tail -n 80 "$RUNNER_TEMP/gradle.log"
+            echo "::error title=Gradle failed::$(grep -E 'FAILURE|What went wrong|error:|Could not|not found|License|SDK' -A2 "$RUNNER_TEMP/gradle.log" | head -c 1400 | sed ':a;N;$!ba;s/\n/ | /g')"
+            exit 1
+          }
       - uses: actions/upload-artifact@v5
         with: { name: campus1cloud-debug-apk, path: android/app/build/outputs/apk/debug/app-debug.apk }
       - name: Signed Play Store bundle
