@@ -22,12 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22, cache: npm, cache-dependency-path: '**/package-lock.json' }
       - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: 21 }
       - name: Install and sync
         run: |
-          (npm ci && npx cap sync android) > "$RUNNER_TEMP/install.log" 2>&1 || {
+          (npm ci && (cd frontend && npm ci && npm run build) && npx cap sync android) > "$RUNNER_TEMP/install.log" 2>&1 || {
             cat "$RUNNER_TEMP/install.log"
             echo "::error title=Install failed::$(tail -c 900 "$RUNNER_TEMP/install.log" | sed ':a;N;$!ba;s/\n/ | /g')"
             exit 1

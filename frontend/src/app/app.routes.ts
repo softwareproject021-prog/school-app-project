@@ -12,7 +12,7 @@ const TP = roleGuard('TEACHER', 'PARENT');
 const P = roleGuard('PARENT');
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', loadComponent: () => import('./pages/landing.component').then(m => m.LandingComponent) },
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
   { path: 'login', loadComponent: () => import('./pages/login.component').then(m => m.LoginComponent) },
   { path: 'forgot', loadComponent: () => import('./pages/forgot.component').then(m => m.ForgotComponent) },
   { path: 'join/:token', loadComponent: () => import('./pages/join.component').then(m => m.JoinComponent) },
