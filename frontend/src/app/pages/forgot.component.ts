@@ -7,8 +7,8 @@ import { Api, errText } from '../core/api.service';
 @Component({
   selector: 'app-forgot', standalone: true, imports: [FormsModule, RouterLink],
   template: `
-  <header class="top"><a class="logo" href="/" style="text-decoration:none;color:inherit"><i>C</i>Campus1Cloud</a></header>
-  <main style="padding:28px 16px;display:flex;justify-content:center">
+  <header class="top"><a class="logo" routerLink="/login" style="text-decoration:none;color:inherit"><i>C</i>Campus1Cloud</a></header>
+  <div class="plain">
     <section class="panel" style="max-width:440px;width:100%">
       <a class="btn sm" routerLink="/login" style="text-decoration:none;margin-bottom:12px;display:inline-flex">← Back to sign in</a>
       <h2>Forgot your password?</h2>
@@ -23,7 +23,7 @@ import { Api, errText } from '../core/api.service';
         <p class="muted" style="font-size:13px;margin:10px 0 0">No email on your account? Ask your principal (or Campus1Cloud) to resend your invite from the Invites page.</p>
       }
     </section>
-  </main>`,
+  </div>`,
 })
 export class ForgotComponent {
   private api = inject(Api);

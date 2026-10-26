@@ -11,7 +11,7 @@ const WHO: Record<string, string> = { ORG_ADMIN: 'principal', TEACHER: 'teacher'
   selector: 'app-join', standalone: true, imports: [FormsModule, RouterLink],
   template: `
   <header class="top"><div class="logo"><i>C</i>Campus1Cloud</div></header>
-  <main style="padding:28px 16px;display:flex;justify-content:center">
+  <div class="plain">
     <section class="panel" style="max-width:440px;width:100%">
       @if (info(); as i) {
         <img src="campus1cloud-logo.png" alt="Campus1Cloud" style="display:block;width:min(200px,60%);margin:0 auto 12px;border-radius:12px">
@@ -27,10 +27,10 @@ const WHO: Record<string, string> = { ORG_ADMIN: 'principal', TEACHER: 'teacher'
         </form>
         <p class="muted" style="font-size:13px;margin:10px 0 0">At least 10 characters with letters and numbers. This link works once.</p>
       } @else if (bad()) {
-        <a class="btn sm" routerLink="/" style="text-decoration:none;margin-bottom:12px;display:inline-flex">← Back to home</a><h2>Invite not available</h2><div class="err" style="margin-top:10px">{{ bad() }}</div>
+        <a class="btn sm" routerLink="/login" style="text-decoration:none;margin-bottom:12px;display:inline-flex">← Back to sign in</a><h2>Invite not available</h2><div class="err" style="margin-top:10px">{{ bad() }}</div>
       } @else { <div class="empty"><span class="spin"></span> Checking your invite…</div> }
     </section>
-  </main>`,
+  </div>`,
 })
 export class JoinComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth); private router = inject(Router); private route = inject(ActivatedRoute);

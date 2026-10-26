@@ -35,16 +35,15 @@ Add four GitHub secrets (repo → Settings → Secrets and variables → Actions
 - **App access:** Play reviewers need to sign in. Give them a demo principal login in the "App access" section (a real invite-created account on a demo school, not a production school).
 - Graphics: 512×512 icon (`docs/store/icon-512.png` is provided), 1024×500 feature graphic, at least 2 phone screenshots.
 
-## 5. How the app works (and a policy warning)
-The app is a native Android shell that opens https://www.campus1cloud.com. Website updates reach the app immediately, with no new release, and sign-in cookies work because it is the same address as the website.
-Google can reject apps that are only a website in a frame ("minimum functionality" policy). To pass review, keep the native parts (splash, icon, offline screen, status bar) and plan to add native features, for example push notifications for attendance alerts (needs a small backend addition), then mention them in the store description.
+## 5. How the app works
+The app has its own phone UI (bundled from `frontend/`) and calls the live backend, so screens change only with a new app release, while data and rules come from the server. Because it has native navigation, offline handling, icon and splash, it is more than a website in a frame. Adding push notifications for attendance alerts would strengthen it further (needs a small backend addition).
 
 ## 6. Local development
 ```
 npm install
+(cd frontend && npm install && npm run build)
 npx cap sync android
 npx cap open android      # opens Android Studio
 ```
-Test against another server: `CAP_SERVER_URL=https://your-preview.vercel.app npx cap sync android`.
 Regenerate icons and splash after changing the logo: `python3 tools/make_icons.py`.
-`frontend/` is a copy of the web app source, kept here for reference; the app itself loads the live site.
+`frontend/` is the app's UI source.

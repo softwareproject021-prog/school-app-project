@@ -224,3 +224,139 @@ a{color:var(--sky)}
   .shell{align-items:start}
   nav.rail{position:sticky;top:0;align-self:start;height:100vh;max-height:calc(100vh - 60px);overflow-y:auto;overscroll-behavior:contain}
 }
+
+/* ======================================================================
+   Campus1Cloud Android app: phone layout (overrides the desktop rules above)
+   ====================================================================== */
+:root{
+  --sat:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px));
+  --sab:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px));
+  --sal:max(env(safe-area-inset-left,0px),var(--safe-area-inset-left,0px));
+  --sar:max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px));
+  --tabh:62px; --appbarh:56px;
+}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{overscroll-behavior-y:contain;user-select:none;-webkit-user-select:none}
+input,textarea,select{user-select:text;-webkit-user-select:text}
+body::before{display:none}
+a,button{touch-action:manipulation}
+
+/* top app bar */
+.appbar{position:sticky;top:0;z-index:20;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(var(--sat) + 10px) calc(var(--sar) + 16px) 12px calc(var(--sal) + 16px);box-shadow:0 4px 16px rgb(29 49 96/.28)}
+.appbar .ttl{min-width:0}
+.appbar h1{color:#fff;font:700 21px/1.15 var(--display);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .ttl span{display:block;font-size:12.5px;color:rgb(255 255 255/.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.avatar-btn{flex:none;width:40px;height:40px;border-radius:50%;border:2px solid rgb(255 255 255/.55);background:rgb(255 255 255/.18);color:#fff;font:700 15px var(--display);cursor:pointer}
+.avatar-btn:active{background:rgb(255 255 255/.3)}
+.viewing{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-soft);color:#5a3800;font-size:13px;font-weight:600;padding:8px calc(var(--sar) + 16px) 8px calc(var(--sal) + 16px)}
+.viewing button{border:1px solid #5a380055;background:#fff8;border-radius:99px;padding:5px 12px;font-weight:600;color:#5a3800}
+.offline{background:var(--bad);color:#fff;font-size:13px;text-align:center;padding:6px 12px}
+
+/* page area */
+.content{padding:16px calc(var(--sar) + 14px) calc(var(--tabh) + var(--sab) + 28px) calc(var(--sal) + 14px);min-height:calc(100vh - var(--appbarh));min-width:0}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.content > router-outlet + *{display:block;animation:rise .22s ease backwards}
+@media (prefers-reduced-motion:reduce){.content > router-outlet + *{animation:none}}
+
+/* bottom tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:25;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px calc(var(--sar) + 4px) calc(var(--sab) + 6px) calc(var(--sal) + 4px);box-shadow:0 -6px 20px rgb(29 49 96/.1)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:48px;border:0;background:none;color:var(--muted);text-decoration:none;font-size:11.5px;font-weight:600;cursor:pointer;border-radius:14px;position:relative}
+.tab svg,.tile svg,.row svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--brand)}
+.tab.on::before{content:"";position:absolute;top:-7px;width:30px;height:3px;border-radius:0 0 4px 4px;background:var(--grad)}
+.tab.on svg{stroke-width:2.2}
+.tab:active{background:var(--sunk)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tab.on{color:var(--sky)}}
+
+/* bottom sheets */
+.scrim{position:fixed;inset:0;z-index:40;background:rgb(10 20 40/.5);animation:fade .18s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--surface);border-radius:22px 22px 0 0;max-height:82vh;overflow-y:auto;overscroll-behavior:contain;
+  padding:8px calc(var(--sar) + 16px) calc(var(--sab) + 22px) calc(var(--sal) + 16px);animation:up .24s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 -10px 40px rgb(0 0 0/.25)}
+.grab{width:42px;height:5px;border-radius:99px;background:var(--line);margin:6px auto 10px}
+.sheet h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:14px 2px 8px;font-family:var(--body);font-weight:700}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px 12px;border-radius:16px;background:var(--sunk);border:1px solid var(--line);text-decoration:none;color:var(--ink);text-align:center;font-size:12.5px;font-weight:600;line-height:1.2}
+.tile i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--teal-soft);color:var(--brand);font-style:normal}
+.tile:nth-child(3n+2) i{background:var(--violet-soft);color:var(--violet)}
+.tile:nth-child(3n) i{background:var(--coral-soft);color:var(--coral)}
+.tile.on{border-color:var(--sky);background:var(--sky-soft)}
+.tile:active{transform:scale(.97)}
+.me{display:flex;align-items:center;gap:14px;padding:8px 2px 16px}
+.me .big{width:54px;height:54px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font:700 20px var(--display);flex:none}
+.me b{display:block;font-size:17px}.me span{display:block;color:var(--muted);font-size:13.5px}
+.row{display:flex;align-items:center;gap:12px;width:100%;border:0;background:var(--sunk);border-radius:14px;padding:14px;margin-top:8px;font-weight:600;font-size:15px;cursor:pointer;color:var(--ink)}
+.row.out{color:var(--bad)}
+
+/* sign-in and other plain pages */
+.auth{min-height:100vh;display:flex;flex-direction:column;background:var(--grad);padding:0 calc(var(--sar) + 18px) calc(var(--sab) + 18px) calc(var(--sal) + 18px)}
+.auth-hero{text-align:center;padding:calc(var(--sat) + 36px) 0 22px}
+.auth-hero img{width:min(260px,72%);height:auto;background:#fff;border-radius:22px;padding:12px;box-shadow:0 14px 34px rgb(0 0 0/.28)}
+.auth-hero p{color:rgb(255 255 255/.88);margin:14px 0 0;font-weight:600;letter-spacing:.04em}
+.auth-card{background:var(--surface);border-radius:24px;padding:24px 20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 40px rgb(0 0 0/.25)}
+.auth-card h2{font-size:24px;color:var(--brand)}
+.auth-card .sub{margin:-8px 0 2px}
+.auth-card label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.auth-card label input{text-transform:none;letter-spacing:0;font-size:16px;font-weight:400;color:var(--ink)}
+.auth-card .forgot{text-align:center;font-weight:600;padding:6px}
+.auth-foot{color:rgb(255 255 255/.85);text-align:center;font-size:13.5px;margin:18px 0 0}
+.plain{padding:20px calc(var(--sar) + 16px) calc(var(--sab) + 24px) calc(var(--sal) + 16px);display:flex;justify-content:center}
+.plain .panel{width:100%;max-width:440px}
+.top{padding:calc(var(--sat) + 12px) calc(var(--sar) + 16px) 12px calc(var(--sal) + 16px);display:flex}
+
+/* controls: big enough for thumbs, 16px text so Android never zooms */
+input[type=text],input[type=search],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{font-size:16px;min-height:44px;border-radius:12px;padding:10px 12px}
+.btn{min-height:44px;border-radius:12px;padding:10px 16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600}
+.btn.sm{min-height:38px;padding:7px 12px;font-size:14px;border-radius:10px}
+.btn.big{width:100%;min-height:50px;font-size:16px;border-radius:14px}
+.btn:active{transform:scale(.98)}
+.seg button{min-height:38px;padding:6px 14px;font-size:14px}
+.bar{gap:10px}
+.bar > *{flex:1 1 150px}.bar > .btn{flex:0 0 auto}
+.form{grid-template-columns:1fr}
+
+/* page header becomes a quiet strip (the app bar already shows the title) */
+.head{background:none;border:0;border-radius:0;padding:0;margin:0 0 14px;align-items:center}
+.head::after{display:none}
+.head h1{display:none}
+.head .sub{margin:0;font-size:14px;flex:1 1 200px}
+.head .btn{flex:none}
+h2{font-size:17px}
+
+/* cards, tiles, lists */
+.panel{border-radius:18px;padding:14px;border-top-width:3px;box-shadow:0 2px 10px rgb(29 49 96/.06)}
+.stack{gap:14px}
+.grid2{gap:14px}
+.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{border-radius:16px;padding:12px 14px}
+.kpi .v{font-size:21px;overflow-wrap:anywhere}
+.kpi:hover{transform:none}
+.note,.err{border-radius:14px}
+.feed .it{padding:11px 0}
+.pill{font-size:12.5px;padding:3px 10px}
+.toast{bottom:calc(var(--tabh) + var(--sab) + 18px)}
+
+/* tables become cards */
+.tw:has(table.cards){border:0;overflow:visible;border-radius:0}
+table.cards,table.cards tbody{display:block;width:100%}
+table.cards thead{display:none}
+table.cards tr{display:block;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 14px;margin:0 0 10px;box-shadow:0 2px 8px rgb(29 49 96/.05)}
+table.cards tbody tr:nth-child(even) td,table.cards tbody tr:hover td{background:none}
+table.cards td{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0;border:0;border-bottom:1px dashed var(--line);white-space:normal;text-align:right;min-width:0;background:none}
+table.cards td:last-child{border-bottom:0}
+table.cards td[data-label]:not([data-label=""])::before{content:attr(data-label);flex:none;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:left}
+table.cards td[data-label=""]{justify-content:flex-start;flex-wrap:wrap;gap:8px;padding-top:10px}
+table.cards td:not([data-label]){display:block;text-align:left}
+table.cards tr.detail{background:var(--sunk)}
+table.cards td.n{font-family:var(--mono)}
+table.cards tbody tr:first-child td:first-child{border-top:0}
+.tw:has(table.tt){border-radius:14px}
+.tt td,.tt th{min-width:88px}
+
+/* attendance rows: easy to tap */
+.att{grid-template-columns:1fr}
+.st{padding:10px 12px;border-radius:14px}
+a.btn{text-decoration:none}
