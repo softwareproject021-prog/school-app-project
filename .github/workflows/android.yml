@@ -27,8 +27,11 @@ jobs:
         with: { distribution: temurin, java-version: 21 }
       - name: Install and sync
         run: |
-          npm ci
-          npx cap sync android
+          (npm ci && npx cap sync android) > "$RUNNER_TEMP/install.log" 2>&1 || {
+            cat "$RUNNER_TEMP/install.log"
+            echo "::error title=Install failed::$(tail -c 900 "$RUNNER_TEMP/install.log" | sed ':a;N;$!ba;s/\n/ | /g')"
+            exit 1
+          }
       - name: Test APK
         run: cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v5
