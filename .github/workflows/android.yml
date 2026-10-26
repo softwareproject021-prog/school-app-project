@@ -1,0 +1,51 @@
+name: Android build
+
+# Every push builds a test APK. Run it by hand ("Run workflow") or push a tag like v1.0.1 to also build the
+# signed .aab that you upload to the Play Store (needs the 4 signing secrets, see docs/PLAY_STORE.md).
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Also build the signed Play Store bundle (.aab)'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION_CODE: ${{ github.run_number }}
+      APP_VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('1.0.{0}', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - name: Install and sync
+        run: |
+          npm ci
+          npx cap sync android
+      - name: Test APK
+        run: cd android && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with: { name: campus1cloud-debug-apk, path: android/app/build/outputs/apk/debug/app-debug.apk }
+      - name: Signed Play Store bundle
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo "Add the signing secrets first (docs/PLAY_STORE.md)"; exit 1; }
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+          cd android && ./gradlew bundleRelease
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        with: { name: campus1cloud-release-aab, path: android/app/build/outputs/bundle/release/app-release.aab }

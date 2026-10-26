@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Campus1Cloud</string>
+    <string name="title_activity_main">Campus1Cloud</string>
+    <string name="package_name">com.campus1cloud.app</string>
+    <string name="custom_url_scheme">com.campus1cloud.app</string>
+</resources>
