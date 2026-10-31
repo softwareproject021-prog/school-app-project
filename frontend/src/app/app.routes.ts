@@ -33,6 +33,8 @@ export const routes: Routes = [
       { path: 'classes', canActivate: [O], loadComponent: () => import('./pages/org/classes.component').then(m => m.ClassesComponent) },
       { path: 'teachers', canActivate: [O], loadComponent: () => import('./pages/org/teachers.component').then(m => m.TeachersComponent) },
       { path: 'students', canActivate: [O], loadComponent: () => import('./pages/org/students.component').then(m => m.StudentsComponent) },
+      // Promote session: principal, or Main Admin viewing a school (the O guard covers both)
+      { path: 'promote', canActivate: [O], loadComponent: () => import('./pages/org/promote.component').then(m => m.PromoteComponent) },
       { path: 'fees', canActivate: [O], loadComponent: () => import('./pages/org/fees.component').then(m => m.FeesComponent) },
       { path: 'store', canActivate: [O], loadComponent: () => import('./pages/org/store.component').then(m => m.StoreComponent) },
       { path: 'sports', canActivate: [OTP], loadComponent: () => import('./pages/org/sports.component').then(m => m.SportsComponent) },
