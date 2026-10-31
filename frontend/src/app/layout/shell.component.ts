@@ -16,7 +16,7 @@ const MAIN: Item[] = [
 const ORG: Item[] = [
   I('Today', '/dashboard', 'Home', 'home', 'Home'), I('Today', '/attendance', 'Attendance', 'check', 'Attendance'), I('Today', '/statistics', 'Statistics', 'chart', 'Stats'),
   I('Today', '/leave', 'Leave & substitutes', 'leave'),
-  I('School', '/fees', 'Fees', 'rupee', 'Fees'), I('School', '/classes', 'Classes', 'school'), I('School', '/teachers', 'Teachers', 'user'), I('School', '/students', 'Students', 'users'),
+  I('School', '/fees', 'Fees', 'rupee', 'Fees'), I('School', '/classes', 'Classes', 'school'), I('School', '/teachers', 'Teachers', 'user'), I('School', '/students', 'Students', 'users'), I('School', '/promote', 'Promote session', 'swap'),
   I('School', '/timetable', 'Timetable', 'calendar'), I('School', '/marks', 'Marks', 'book'), I('School', '/homework', 'Homework', 'clipboard'), I('School', '/invites', 'Invites', 'mail'),
   I('Campus', '/store', 'Store', 'box'), I('Campus', '/events', 'Events', 'calendar'), I('Campus', '/sports', 'Sports', 'trophy'), I('Campus', '/transport', 'Transport', 'bus'), I('Campus', '/notifications', 'Notifications', 'bell')];
 const TEACHER: Item[] = [
