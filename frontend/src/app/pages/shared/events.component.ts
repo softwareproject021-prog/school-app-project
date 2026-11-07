@@ -41,19 +41,24 @@ function shrink(file: File, cb: (url: string) => void, fail: () => void) {
     <article class="evc"><div class="art">@if (e.imageData) { <img [src]="e.imageData" [alt]="e.title"> } @else { <div [innerHTML]="art(e.type)"></div> }</div>
       <div class="bd"><span class="pill acc" style="align-self:flex-start">{{ e.type }}</span><h2 style="font-size:16px">{{ e.title }}</h2>
         <div class="ft"><span class="mono muted" style="font-size:13px">{{ e.date }}</span>
-          @if (canEdit) { <span class="btn sm upl">{{ e.imageData ? 'Change photo' : 'Upload photo' }}<input type="file" accept="image/*" (change)="photo(e, $event)" [attr.aria-label]="'Upload photo for ' + e.title"></span> }</div></div></article>
+          @if (canEdit) { <span class="btn sm upl">{{ e.imageData ? 'Change photo' : 'Upload photo' }}<input type="file" accept="image/*" (change)="photo(e, $event)" [attr.aria-label]="'Upload photo for ' + e.title"></span>
+            @if (confirmId() === e.id) { <button class="btn sm danger" (click)="remove(e)">Confirm delete</button> <button class="btn sm" (click)="confirmId.set(null)">Cancel</button> }
+            @else { <button class="btn sm" (click)="confirmId.set(e.id)" [attr.aria-label]="'Delete ' + e.title">Delete</button> } }</div></div></article>
   </ng-template>`,
 })
 export class EventsComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast); private san = inject(DomSanitizer);
   canEdit = inject(Auth).effectiveRole() === 'ORG_ADMIN';
-  all = signal<any[]>([]); showForm = signal(false);
+  all = signal<any[]>([]); showForm = signal(false); confirmId = signal<number | null>(null);
   f: any = { title: '', date: isoToday(), type: 'Academic', imageData: null, notifyParents: true };
   upcoming = () => this.all().filter(e => e.date >= isoToday());
   past = () => this.all().filter(e => e.date < isoToday());
   art(type: string): SafeHtml { return this.san.bypassSecurityTrustHtml(EVENT_ART[type] ?? EVENT_ART['Academic']); }
   ngOnInit() { this.load(); }
   load() { this.api.get<any[]>('/events').subscribe(r => this.all.set(r)); }
+  remove(e: any) {
+    this.api.delete('/events/' + e.id).subscribe({ next: () => { this.toast.show('Event deleted'); this.confirmId.set(null); this.load(); }, error: x => { this.confirmId.set(null); this.toast.show(errText(x), 6000); } });
+  }
   pick(ev: Event) { const file = (ev.target as HTMLInputElement).files?.[0]; if (file) shrink(file, u => this.f.imageData = u, () => this.toast.show('That file is not an image. Choose a JPG or PNG.')); }
   add() { this.api.post('/events', this.f).subscribe({ next: () => { this.toast.show('Event added' + (this.f.notifyParents ? ' · parents notified' : '')); this.f = { title: '', date: isoToday(), type: 'Academic', imageData: null, notifyParents: true }; this.showForm.set(false); this.load(); }, error: e => this.toast.show(errText(e)) }); }
   photo(e: any, ev: Event) {
