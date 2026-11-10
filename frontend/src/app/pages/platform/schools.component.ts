@@ -26,7 +26,7 @@ import { InrPipe } from '../../core/format';
     <section class="panel">
       <div class="bar">
         <input type="search" [(ngModel)]="q" (ngModelChange)="typed()" placeholder="Search school, city or admin…" aria-label="Search schools">
-        <select [(ngModel)]="state" (change)="load()" aria-label="State"><option value="">All states</option>@for (x of states; track x) { <option>{{ x }}</option> }</select>
+        <select [(ngModel)]="state" (change)="load()" aria-label="State"><option value="">All states</option>@for (x of states(); track x) { <option>{{ x }}</option> }</select>
         <select [(ngModel)]="plan" (change)="load()" aria-label="Plan"><option value="">All plans</option><option>Basic</option><option>Standard</option><option>Premium</option></select>
         <select [(ngModel)]="status" (change)="load()" aria-label="Status"><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="TRIAL">Trial</option><option value="SUSPENDED">Suspended</option></select>
       </div>
@@ -36,11 +36,13 @@ import { InrPipe } from '../../core/format';
       <div class="tw"><table><thead><tr><th>School</th><th>City</th><th>Org admin</th><th>Plan</th><th class="n">Students</th><th class="n">Teachers</th><th>Status</th><th>Renewal</th><th>Actions</th></tr></thead><tbody>
         @for (s of rows(); track s.id) {
           <tr><td><b>{{ s.name }}</b></td><td>{{ s.city }}, <span class="muted">{{ s.state }}</span></td><td>{{ s.adminName }}</td>
-            <td>{{ s.plan }} <span class="muted mono">{{ s.monthly | inr }}/mo</span></td><td class="n">{{ s.students }}</td><td class="n">{{ s.teachers }}</td>
+            <td><select class="inl" [ngModel]="s.plan" (ngModelChange)="setPlan(s, $event)" [attr.aria-label]="'Plan for ' + s.name"><option>Basic</option><option>Standard</option><option>Premium</option></select> <span class="muted mono">{{ s.monthly | inr }}/mo</span></td><td class="n">{{ s.students }}</td><td class="n">{{ s.teachers }}</td>
             <td><span class="pill" [class.good]="s.status==='ACTIVE'" [class.warn]="s.status==='TRIAL'" [class.bad]="s.status==='SUSPENDED'">{{ label(s.status) }}</span></td>
             <td class="mono">{{ s.renewDate }}</td>
             <td><button class="btn sm pri" (click)="auth.viewAs(s.id, s.name)">View as school</button>
-              <button class="btn sm" [class.danger]="s.status!=='SUSPENDED'" (click)="toggle(s)">{{ s.status === 'SUSPENDED' ? 'Activate' : 'Suspend' }}</button></td></tr>
+              @if (s.status === 'SUSPENDED') { <button class="btn sm" (click)="toggle(s)">Activate</button> }
+              @else if (confirmId() === s.id) { <button class="btn sm danger" (click)="toggle(s)">Confirm suspend</button> <button class="btn sm" (click)="confirmId.set(null)">Cancel</button> }
+              @else { <button class="btn sm danger" (click)="confirmId.set(s.id)">Suspend</button> }</td></tr>
         }
       </tbody></table></div>
       }
@@ -51,7 +53,9 @@ export class SchoolsComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast); auth = inject(Auth);
   rows = signal<any[]>([]); sum = signal<any>(null); loading = signal(true); error = signal('');
   q = ''; state = ''; plan = ''; status = '';
-  states = ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Tamil Nadu', 'Maharashtra'];
+  /** States seen so far, so a school in any state can be found. The list only grows while this page is open, so picking one never removes the others. */
+  states = signal<string[]>(['Telangana', 'Andhra Pradesh', 'Karnataka', 'Tamil Nadu', 'Maharashtra']);
+  confirmId = signal<number | null>(null);
   private t: any;
   ngOnInit() { this.load(); this.summary(); }
   summary() { this.api.get('/platform/summary').subscribe(s => this.sum.set(s)); }
@@ -60,12 +64,21 @@ export class SchoolsComponent implements OnInit {
   load() {
     this.loading.set(true);
     this.api.get<any[]>('/platform/schools', { q: this.q, state: this.state, plan: this.plan, status: this.status }).subscribe({
-      next: r => { this.rows.set(r); this.loading.set(false); this.error.set(''); }, error: e => { this.error.set(errText(e)); this.loading.set(false); } });
+      next: r => {
+        this.rows.set(r); this.loading.set(false); this.error.set('');
+        const seen = r.map(x => x.state).filter((x): x is string => !!x && !this.states().includes(x));
+        if (seen.length) this.states.update(s => [...s, ...new Set(seen)].sort());
+      }, error: e => { this.error.set(errText(e)); this.loading.set(false); } });
+  }
+  setPlan(s: any, plan: string) {
+    this.api.patch(`/platform/schools/${s.id}/plan`, { plan }).subscribe({
+      next: () => { this.toast.show(`${s.name} is now on the ${plan} plan`); this.load(); this.summary(); },
+      error: e => { this.toast.show(errText(e), 6000); this.load(); } });
   }
   toggle(s: any) {
     const next = s.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED';
     this.api.patch(`/platform/schools/${s.id}/status`, { status: next }).subscribe({
-      next: () => { this.toast.show(`${s.name} ${next === 'SUSPENDED' ? 'suspended. Its users can no longer log in' : 'activated'}`); this.load(); this.summary(); },
-      error: e => this.toast.show(errText(e)) });
+      next: () => { this.confirmId.set(null); this.toast.show(`${s.name} ${next === 'SUSPENDED' ? 'suspended. Its users can no longer log in' : 'activated'}`); this.load(); this.summary(); },
+      error: e => { this.confirmId.set(null); this.toast.show(errText(e), 6000); } });
   }
 }
