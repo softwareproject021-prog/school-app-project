@@ -15,7 +15,7 @@ import { ClassPipe } from '../../core/format';
 
     <section class="panel"><div class="ph"><h2>Promote all classes at once</h2></div>
       @if (all(); as al) {
-        @if (al.steps.length === 0) { <div class="empty">No students to promote.</div> } @else {
+        @if (!al.steps?.length) { <div class="empty">No students to promote.</div> } @else {
           <p class="sub" style="margin:0 0 8px">{{ al.willMove }} students move up one class, highest class first so every next class is empty when it is filled.@if (al.blocked) { {{ al.blocked }} class(es) are skipped, see below. }</p>
           <div class="tw"><table><thead><tr><th>From</th><th>To</th><th class="n">Students</th><th>Status</th></tr></thead><tbody>
             @for (st of al.steps; track st.fromClass) {

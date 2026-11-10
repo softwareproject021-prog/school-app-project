@@ -10,7 +10,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
   template: `
   <div class="head"><div><h1>Fees</h1><p class="sub">Academic year 2026–27.</p></div><button class="btn acc" (click)="remind()">Send reminders to filtered list</button></div>
   <div class="stack">
-    <div class="ftabs" role="tablist"><button role="tab" [class.on]="tab()==='reg'" (click)="go('reg')">Fee register</button><button role="tab" [class.on]="tab()==='disc'" (click)="go('disc')">Discounts@if (dd()?.students) { <span class="cnt">{{ dd().students }}</span> }</button><button role="tab" [class.on]="tab()==='bulk'" (click)="go('bulk')">Discount many</button></div>
+    <div class="ftabs" role="tablist"><button role="tab" [class.on]="tab()==='reg'" (click)="go('reg')">Fee register</button><button role="tab" [class.on]="tab()==='disc'" (click)="go('disc')">Discounts@if (dd()?.students) { <span class="cnt">{{ dd().students }}</span> }</button><button role="tab" [class.on]="tab()==='bulk'" (click)="go('bulk')">Discount many</button><button role="tab" [class.on]="tab()==='plan'" (click)="go('plan')">Fee structure</button></div>
     @if (tab()==='reg') { @if (d(); as d) {
     <div class="kpis"><div class="kpi"><div class="l">Fee before discount</div><div class="v">{{ d.gross | inr }}</div></div><div class="kpi warn"><div class="l">Discounts</div><div class="v">{{ d.discount | inr }}</div></div><div class="kpi"><div class="l">Billed</div><div class="v">{{ d.billed | inr }}</div></div><div class="kpi good"><div class="l">Collected</div><div class="v">{{ d.collected | inr }}</div></div>
       <div class="kpi bad"><div class="l">Outstanding</div><div class="v">{{ d.outstanding | inr }}</div></div><div class="kpi"><div class="l">Collection</div><div class="v">{{ d.billed ? (d.collected / d.billed * 100 | number:'1.0-0') : 0 }}%</div></div></div>
@@ -93,18 +93,41 @@ import { ClassPipe, InrPipe } from '../../core/format';
         </form>
         @if (bResult(); as br) { <div class="note" style="margin-top:10px">Done. {{ br.applied }} students updated, {{ br.unchanged }} already had this discount, {{ br.skipped }} skipped (of {{ br.students }}).</div> }
       </section> }
+    @if (tab()==='plan') {
+      <section class="panel"><div class="ph"><h2>Fee for each class</h2></div>
+        <div class="note" style="margin-bottom:10px">Set the yearly fee of a class and it is applied to every student in it. Parents see their child's class fee on their Fees page.
+          A student is skipped if the new fee is less than their discount or what they have already paid.</div>
+        @if (plan(); as pl) {
+          <div class="tw"><table><thead><tr><th>Class</th><th class="n">Students</th><th class="n">Yearly fee (Rs)</th><th></th></tr></thead><tbody>
+            @for (c of pl.classes; track c.code) {
+              <tr><td><b>{{ c.code | cls }}</b></td><td class="n">{{ c.students }}</td>
+                <td class="n"><input type="number" min="0" class="inl" [value]="c.fee || ''" (input)="setIn('c' + c.code, $any($event.target).value)" [attr.aria-label]="'Yearly fee for class ' + c.code" placeholder="not set"></td>
+                <td><button class="btn sm pri" [disabled]="pBusy() === 'c' + c.code" (click)="saveClassFee(c)">Save</button></td></tr> }
+          </tbody></table></div> } @else { <div class="empty">Loading…</div> }
+      </section>
+      @if (plan()?.buses?.length) {
+        <section class="panel"><div class="ph"><h2>Fee for each bus</h2></div>
+          <div class="note" style="margin-bottom:10px">The bus fee is added to the fee of every student who rides that bus. Choose who rides each bus on the Transport page.</div>
+          <div class="tw"><table><thead><tr><th>Bus</th><th class="n">Students</th><th class="n">Yearly bus fee (Rs)</th><th></th></tr></thead><tbody>
+            @for (b of plan().buses; track b.id) {
+              <tr><td><b>{{ b.code }}</b> <span class="muted">{{ b.name }}</span></td><td class="n">{{ b.riders }}</td>
+                <td class="n"><input type="number" min="0" class="inl" [value]="b.fee || ''" (input)="setIn('b' + b.id, $any($event.target).value)" [attr.aria-label]="'Yearly fee for bus ' + b.code" placeholder="not set"></td>
+                <td><button class="btn sm pri" [disabled]="pBusy() === 'b' + b.id" (click)="saveBusFee(b)">Save</button></td></tr> }
+          </tbody></table></div></section> }
+    }
   </div>`,
-  styles: [`.ftabs{display:flex;gap:6px}.ftabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 16px;border-radius:99px;font-weight:600;cursor:pointer}
+  styles: [`.ftabs{display:flex;gap:6px;flex-wrap:wrap}.ftabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 16px;border-radius:99px;font-weight:600;cursor:pointer}
     .ftabs button.on{background:var(--grad);color:#fff;border-color:transparent}.cnt{margin-left:6px;background:var(--accent-soft);color:var(--warn);border-radius:99px;padding:0 7px;font-size:12px}`],
 })
 export class FeesComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast);
-  tab = signal<'reg' | 'disc' | 'bulk'>('reg');
+  tab = signal<'reg' | 'disc' | 'bulk' | 'plan'>('reg');
+  plan = signal<any>(null); pBusy = signal(''); private pIn: Record<string, string> = {};
   bClass = ''; bMode = 'percent'; bVal = 0; bWhy = ''; bConfirm = signal(false); bBusy = signal(false); bResult = signal<any>(null); dd = signal<any>(null); dq = ''; dclass = ''; private td: any;
   ed = signal<any>(null); amt = 0; pct = 0; why = '';
   d = signal<any>(null); classes = signal<any[]>([]); q = ''; classCode = ''; status = 'due'; private t: any;
   ngOnInit() { this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); this.load(); this.loadD(); }
-  go(t: 'reg' | 'disc' | 'bulk') { this.tab.set(t); this.ed.set(null); this.bResult.set(null); this.bConfirm.set(false); if (t === 'disc') this.loadD(); else if (t === 'reg') this.load(); }
+  go(t: 'reg' | 'disc' | 'bulk' | 'plan') { this.tab.set(t); this.ed.set(null); this.bResult.set(null); this.bConfirm.set(false); if (t === 'disc') this.loadD(); else if (t === 'reg') this.load(); else if (t === 'plan') this.loadPlan(); }
   typedD() { clearTimeout(this.td); this.td = setTimeout(() => this.loadD(), 250); }
   loadD() { this.api.get('/fees/discounts', { q: this.dq, classCode: this.dclass }).subscribe(r => this.dd.set(r)); }
   typed() { clearTimeout(this.t); this.t = setTimeout(() => this.load(), 250); }
@@ -115,6 +138,27 @@ export class FeesComponent implements OnInit {
   saveDiscount() {
     const r = this.ed(); if (!r) return;
     this.api.put('/fees/discount/' + r.studentId, { amount: Number(this.amt) || 0, reason: this.why }).subscribe({ next: () => { this.toast.show(Number(this.amt) ? 'Discount saved' : 'Discount removed'); this.ed.set(null); this.load(); this.loadD(); }, error: e => this.toast.show(errText(e)) });
+  }
+  loadPlan() { this.pIn = {}; this.api.get('/fees/structure').subscribe(r => this.plan.set(r)); }
+  setIn(k: string, v: string) { this.pIn[k] = v; }
+  private feeOf(k: string, current: number) { return k in this.pIn ? Number(this.pIn[k]) : current; }
+  saveClassFee(c: any) {
+    const fee = this.feeOf('c' + c.code, c.fee);
+    if (!(fee >= 0) || !c.code) { this.toast.show('Enter the yearly fee for ' + c.code); return; }
+    this.pBusy.set('c' + c.code);
+    this.api.put<any>('/fees/class/' + c.code, { fee }).subscribe({
+      next: r => { this.pBusy.set(''); this.toast.show('Fee for ' + r.classCode + ' set. ' + r.updated + ' students updated' + (r.skipped ? ', ' + r.skipped + ' skipped' : '')); this.loadPlan(); },
+      error: e => { this.pBusy.set(''); this.toast.show(errText(e)); },
+    });
+  }
+  saveBusFee(b: any) {
+    const fee = this.feeOf('b' + b.id, b.fee);
+    if (!(fee >= 0)) { this.toast.show('Enter the yearly fee for bus ' + b.code); return; }
+    this.pBusy.set('b' + b.id);
+    this.api.put<any>('/fees/bus/' + b.id, { fee }).subscribe({
+      next: r => { this.pBusy.set(''); this.toast.show('Bus fee set. ' + r.updated + ' students updated' + (r.skipped ? ', ' + r.skipped + ' skipped' : '')); this.loadPlan(); },
+      error: e => { this.pBusy.set(''); this.toast.show(errText(e)); },
+    });
   }
   applyBulk() {
     this.bBusy.set(true);

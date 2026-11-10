@@ -40,6 +40,7 @@ import { ClassPipe } from '../../core/format';
     <div class="grid2">@for (r of routes(); track r.id) {
       <section class="panel"><div class="ph"><div><h2>{{ r.code }} · {{ r.name }}</h2><p class="sub mono" style="font-size:13px">{{ r.bus }}</p></div>
         <span class="pill good">{{ r.stopCount }} {{ r.stopCount === 1 ? 'stop' : 'stops' }}</span></div>
+        @if (r.fee) { <p class="muted" style="margin:0 0 6px">Bus fee {{ r.fee }} rupees a year</p> }
         <p style="margin:0">Driver {{ r.driver }}@if (r.phone) { · <span class="mono">{{ r.phone }}</span> }@if (!isParent) { · {{ r.riders }} {{ r.riders === 1 ? 'student' : 'students' }} ride }</p>
         <div class="route">@for (s of r.stops; track $index) { <div><i></i><span>{{ s.name }}</span><span class="mono muted">{{ s.time }}</span></div> }</div>
         @if (!isParent) {
