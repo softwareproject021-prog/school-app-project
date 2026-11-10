@@ -9,7 +9,7 @@ import { InrPipe } from '../../core/format';
   @if (d(); as d) {
   <div class="head"><div><h1>Fees</h1><p class="sub">{{ d.studentName }} · Academic year 2026–27</p></div></div>
   <div class="stack">
-    <div class="kpis"><div class="kpi"><div class="l">Annual fee</div><div class="v">{{ d.feeTotal | inr }}</div></div>@if (d.feeDiscount) { <div class="kpi good"><div class="l">Discount</div><div class="v">−{{ d.feeDiscount | inr }}</div>@if (d.discountReason) { <div class="muted" style="font-size:12px">{{ d.discountReason }}</div> }</div><div class="kpi"><div class="l">Fee to pay</div><div class="v">{{ d.feeNet | inr }}</div></div> }<div class="kpi good"><div class="l">Paid</div><div class="v">{{ d.feePaid | inr }}</div></div>
+    <div class="kpis"><div class="kpi"><div class="l">Class fee{{ d.classCode ? ' · ' + d.classCode : '' }}</div><div class="v">{{ d.classFee | inr }}</div></div>@if (d.busFee) { <div class="kpi"><div class="l">Bus fee{{ d.busCode ? ' · ' + d.busCode : '' }}</div><div class="v">{{ d.busFee | inr }}</div></div> }@if (d.feeDiscount) { <div class="kpi good"><div class="l">Discount</div><div class="v">−{{ d.feeDiscount | inr }}</div>@if (d.discountReason) { <div class="muted" style="font-size:12px">{{ d.discountReason }}</div> }</div><div class="kpi"><div class="l">Fee to pay</div><div class="v">{{ d.feeNet | inr }}</div></div> }<div class="kpi good"><div class="l">Paid</div><div class="v">{{ d.feePaid | inr }}</div></div>
       <div class="kpi" [class.bad]="d.feeDue>0" [class.good]="d.feeDue===0"><div class="l">Due</div><div class="v">{{ d.feeDue | inr }}</div></div></div>
     <section class="panel">
       @if (d.feeDue > 0) {

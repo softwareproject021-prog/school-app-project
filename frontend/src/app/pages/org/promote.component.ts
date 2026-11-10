@@ -11,8 +11,26 @@ import { ClassPipe } from '../../core/format';
   template: `
   <div class="head"><div><h1>Promote session</h1><p class="sub">Move all students of a class to the next class in the same section, for example 6-A to 7-A.</p></div></div>
   <div class="stack">
-    <div class="note">Promoting the whole school? Start with the highest class (10 to 11, then 9 to 10, and so on) so every next class is empty.
-      Attendance, marks and fees stay with each student.</div>
+    <div class="note">Attendance, marks and fees stay with each student when they move up.</div>
+
+    <section class="panel"><div class="ph"><h2>Promote all classes at once</h2></div>
+      @if (all(); as al) {
+        @if (!al.steps?.length) { <div class="empty">No students to promote.</div> } @else {
+          <p class="sub" style="margin:0 0 8px">{{ al.willMove }} students move up one class, highest class first so every next class is empty when it is filled.@if (al.blocked) { {{ al.blocked }} class(es) are skipped, see below. }</p>
+          <div class="tw"><table><thead><tr><th>From</th><th>To</th><th class="n">Students</th><th>Status</th></tr></thead><tbody>
+            @for (st of al.steps; track st.fromClass) {
+              <tr><td><b>{{ st.fromClass | cls }}</b></td><td>{{ st.toClass | cls }}</td><td class="n">{{ st.students }}</td>
+                <td>@if (st.blocked) { <span class="pill warn">Skipped: {{ st.reason }}</span> } @else if (st.newClass) { <span class="pill">New class will be created</span> } @else { <span class="pill good">Ready</span> }</td></tr> }
+          </tbody></table></div>
+          <div class="bar" style="margin-top:12px">
+            @if (allConfirm()) {
+              <button class="btn sm danger" [disabled]="allBusy()" (click)="promoteAll()">{{ allBusy() ? 'Promoting…' : 'Yes, promote ' + al.willMove + ' students' }}</button>
+              <button class="btn sm" (click)="allConfirm.set(false)">Cancel</button>
+            } @else { <button class="btn pri" [disabled]="al.willMove === 0" (click)="allConfirm.set(true)">Promote all classes</button> }
+          </div>
+        }
+      }
+    </section>
 
     <section class="panel"><div class="ph"><h2>Choose a class</h2></div>
       <form class="form" (ngSubmit)="loadPreview()">
@@ -73,11 +91,20 @@ import { ClassPipe } from '../../core/format';
 export class PromoteComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast);
   classes = signal<any[]>([]); history = signal<any[]>([]); p = signal<any | null>(null);
+  all = signal<any | null>(null); allConfirm = signal(false); allBusy = signal(false);
   held = signal<Set<number>>(new Set()); confirm = signal(false); busy = signal(false); error = signal('');
   fromClass = ''; allowMerge = false;
   selectedCount = computed(() => (this.p()?.students?.length ?? 0) - this.held().size);
 
-  ngOnInit() { this.loadClasses(); this.loadHistory(); }
+  ngOnInit() { this.loadClasses(); this.loadHistory(); this.loadAll(); }
+  loadAll() { this.api.get('/promotion/preview-all').subscribe({ next: a => this.all.set(a), error: () => this.all.set(null) }); }
+  promoteAll() {
+    this.allBusy.set(true); this.error.set('');
+    this.api.post<any>('/promotion/all', {}).subscribe({
+      next: r => { this.allBusy.set(false); this.allConfirm.set(false); this.toast.show(r.promoted + ' students promoted in ' + r.classes + ' classes' + (r.skipped.length ? ', ' + r.skipped.length + ' skipped' : '')); this.loadClasses(); this.loadHistory(); this.loadAll(); this.loadPreview(); },
+      error: e => { this.allBusy.set(false); this.allConfirm.set(false); this.error.set(errText(e)); },
+    });
+  }
   loadClasses() { this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); }
   loadHistory() { this.api.get<any[]>('/promotion/history').subscribe({ next: h => this.history.set(h), error: () => this.history.set([]) }); }
 
