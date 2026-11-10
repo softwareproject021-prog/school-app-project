@@ -2,6 +2,7 @@
 
 /* Layout: app shell — role bar on top, module rail on the left (horizontal strip on phones), working surface on the right */
 :root{
+  color-scheme:light;
   --bg:#eef3f9; --surface:#ffffff; --sunk:#f4f8fc; --ink:#16233b; --muted:#5b6b82; --line:#d9e3ef;
   --brand:#1d3160; --brand-ink:#ffffff; --accent:#d98f22; --accent-soft:#fbefdc;
   --good:#2b8a55; --good-soft:#e2f3e9; --warn:#b07a0c; --warn-soft:#fbf1d9; --bad:#bf4336; --bad-soft:#f9e3e0;
@@ -11,11 +12,6 @@
   --body:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0c1424; --surface:#14203a; --sunk:#101a30; --ink:#e4ebf5; --muted:#9aa9c4; --line:#26385a;
-  --brand:#6bb8f0; --brand-ink:#0b1a33; --accent:#efb457; --accent-soft:#3a2d16;
-  --good:#5cc78a; --good-soft:#163024; --warn:#e2b04a; --warn-soft:#352a12; --bad:#ee7f72; --bad-soft:#3a1d1a; --violet:#a994f5; --violet-soft:#241d3d; --coral:#f08a6c; --coral-soft:#3a1f17; --sky:#6db6ea; --sky-soft:#13283a; --teal-soft:#12233f;
-  --grad:linear-gradient(120deg,#0f2247 0%,#17407f 50%,#1a4a8a 100%); --grad-warm:linear-gradient(120deg,#b8771a,#c4503a); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0c1424; --surface:#14203a; --sunk:#101a30; --ink:#e4ebf5; --muted:#9aa9c4; --line:#26385a;
   --brand:#6bb8f0; --brand-ink:#0b1a33; --accent:#efb457; --accent-soft:#3a2d16;
