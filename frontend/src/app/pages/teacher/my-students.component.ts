@@ -38,7 +38,8 @@ export class MyStudentsComponent implements OnInit {
   f: any = { name: '', classCode: '', parentName: '', phone: '+91 ', login: '' };
   ngOnInit() {
     this.api.get<any>('/portal/teacher').subscribe(d => {
-      const mine = [...new Set<string>([...(d.myClasses ?? []), ...(d.classTeacherOf ?? []).map((c: any) => c.classCode)])].sort();
+      // Only the teacher's own classes: a class they merely cover as a substitute today is refused by the server.
+      const mine = [...new Set<string>([...(d.ownClasses ?? d.myClasses ?? []), ...(d.classTeacherOf ?? []).map((c: any) => c.classCode)])].sort();
       this.classes.set(mine); this.f.classCode = mine[0] ?? '';
       this.api.get<any[]>('/school/students').subscribe(all => this.students.set(all.filter(s => mine.includes(s.classCode))));
     });
