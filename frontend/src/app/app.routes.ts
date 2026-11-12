@@ -32,6 +32,7 @@ export const routes: Routes = [
       { path: 'leave', canActivate: [O], loadComponent: () => import('./pages/org/leave.component').then(m => m.LeaveComponent) },
       { path: 'classes', canActivate: [O], loadComponent: () => import('./pages/org/classes.component').then(m => m.ClassesComponent) },
       { path: 'teachers', canActivate: [O], loadComponent: () => import('./pages/org/teachers.component').then(m => m.TeachersComponent) },
+      { path: 'admission', canActivate: [O], loadComponent: () => import('./pages/org/admission.component').then(m => m.AdmissionComponent) },
       { path: 'students', canActivate: [O], loadComponent: () => import('./pages/org/students.component').then(m => m.StudentsComponent) },
       // Promote session: principal, or Main Admin viewing a school (the O guard covers both)
       { path: 'promote', canActivate: [O], loadComponent: () => import('./pages/org/promote.component').then(m => m.PromoteComponent) },
@@ -53,7 +54,7 @@ export const routes: Routes = [
       { path: 'homework', canActivate: [OTP], loadComponent: () => import('./pages/shared/homework.component').then(m => m.HomeworkComponent) },
       { path: 'timetable', canActivate: [OTP], loadComponent: () => import('./pages/shared/timetable.component').then(m => m.TimetableComponent) },
       { path: 'events', canActivate: [OTP], loadComponent: () => import('./pages/shared/events.component').then(m => m.EventsComponent) },
-      { path: 'transport', canActivate: [OP], loadComponent: () => import('./pages/shared/transport.component').then(m => m.TransportComponent) },
+      { path: 'transport', canActivate: [OTP], loadComponent: () => import('./pages/shared/transport.component').then(m => m.TransportComponent) },
       { path: 'inbox', canActivate: [TP], loadComponent: () => import('./pages/shared/inbox.component').then(m => m.InboxComponent) },
     ],
   },

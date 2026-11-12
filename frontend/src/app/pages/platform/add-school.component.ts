@@ -19,6 +19,7 @@ import { copyText } from '../../core/clipboard';
       <label>Principal name<input type="text" name="adminName" [(ngModel)]="f.adminName" required></label>
       <label>Principal email (their login)<input type="email" name="adminLogin" [(ngModel)]="f.adminLogin" required placeholder="principal@school.in"></label>
       <label>Start as<select name="status" [(ngModel)]="f.status"><option value="TRIAL">Trial</option><option value="ACTIVE">Active</option></select></label>
+      @if (f.status === 'TRIAL') { <label>Trial length (days)<input name="trialDays" type="number" min="1" max="365" [(ngModel)]="f.trialDays"></label> }
       <label>Sample data<select name="sampleData" [(ngModel)]="f.sampleData"><option [ngValue]="true">Add sample data</option><option [ngValue]="false">Start empty</option></select></label>
       <div><button class="btn pri" type="submit" [disabled]="busy()">{{ busy() ? 'Creating…' : 'Create school & invite principal' }}</button></div>
     </form>
@@ -34,7 +35,7 @@ import { copyText } from '../../core/clipboard';
 export class AddSchoolComponent {
   private api = inject(Api); auth = inject(Auth); private toast = inject(Toast);
   copy(t: string) { copyText(t).then(ok => this.toast.show(ok ? 'Link copied' : 'Select the link and copy it')); }
-  f: any = { name: '', city: '', state: 'Telangana', plan: 'Standard', adminName: '', adminLogin: '', status: 'TRIAL', sampleData: true };
+  f: any = { name: '', city: '', state: 'Telangana', plan: 'Standard', adminName: '', adminLogin: '', status: 'TRIAL', sampleData: true, trialDays: 30 };
   busy = signal(false); error = signal(''); result = signal<any>(null);
   save() {
     this.busy.set(true); this.error.set(''); this.result.set(null);
