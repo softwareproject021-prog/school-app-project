@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Api, errText } from '../../core/api.service';
@@ -26,22 +26,6 @@ import { ClassPipe, InrPipe } from '../../core/format';
             <td class="n">{{ r.feeDiscount ? (r.feeDiscount | inr) : '—' }}@if (r.discountReason) { <div class="muted" style="font-size:12px">{{ r.discountReason }}</div> }</td><td class="n">{{ r.feePaid | inr }}</td><td class="n">{{ r.feeDue | inr }}</td>
             <td><span class="pill" [class.good]="r.feeDue===0" [class.warn]="r.feePaid>0 && r.feeDue>0" [class.bad]="r.feePaid===0">{{ r.feeDue === 0 ? 'Paid' : r.feePaid ? 'Partial' : 'Due' }}</span></td>
             <td><button class="btn sm pri" (click)="openReceipt(r)" [attr.aria-label]="'Receive payment from the parent of ' + r.name">Receive payment</button> <button class="btn sm" (click)="edit(r)">{{ r.feeDiscount ? 'Change discount' : 'Give discount' }}</button></td></tr>
-          @if (rc()?.studentId === r.studentId) { <tr><td colspan="9" style="background:var(--sunk)">
-            <form class="bar" style="margin:0" (ngSubmit)="saveReceipt()">
-              <b>Payment received at the office from {{ r.name }}'s parent</b>
-              <label>Receipt no.<input name="rno" [(ngModel)]="rNo" maxlength="30" placeholder="from the paper receipt" required></label>
-              <label>Amount (₹)<input name="ramt" type="number" min="1" [max]="r.feeDue" [(ngModel)]="rAmt" required></label>
-              <label>Mode<select name="rmode" [(ngModel)]="rMode"><option value="CASH">Cash</option><option value="CHEQUE">Cheque</option><option value="UPI">UPI at counter</option><option value="CARD">Card</option><option value="BANK">Bank transfer</option></select></label>
-              <label>Date<input name="rdate" type="date" [(ngModel)]="rDate" [max]="today"></label>
-              <label>Note<input name="rnote" [(ngModel)]="rNote" maxlength="200" placeholder="cheque no., etc."></label>
-              <span class="muted">Due after this: <b>{{ r.feeDue - (rAmt || 0) | inr }}</b></span>
-              <button class="btn pri" type="submit" [disabled]="rBusy()">{{ rBusy() ? 'Saving…' : 'Save receipt' }}</button><button class="btn" type="button" (click)="rc.set(null)">Close</button>
-            </form>
-            @if (rErr()) { <div class="err" role="alert" style="margin-top:8px">{{ rErr() }}</div> }
-            @if (rList().length) { <div class="tw" style="margin-top:10px"><table><thead><tr><th>Receipt</th><th>Date</th><th>Mode</th><th class="n">Amount</th><th>Note</th><th></th></tr></thead><tbody>
-              @for (p of rList(); track p.id) { <tr><td class="mono">{{ p.receiptNo }}</td><td>{{ p.date }}</td><td>{{ p.mode }}</td><td class="n">{{ p.amount | inr }}</td><td class="muted">{{ p.note || (p.recordedBy ? 'Office' : 'Online') }}</td>
-                <td>@if (p.recordedBy) { @if (voidId() === p.id) { <button class="btn sm danger" type="button" (click)="voidReceipt(p)">Yes, cancel {{ p.receiptNo }}</button> <button class="btn sm" type="button" (click)="voidId.set(null)">No</button> } @else { <button class="btn sm" type="button" (click)="voidId.set(p.id)">Cancel receipt</button> } }</td></tr> }</tbody></table></div> }
-          </td></tr> }
           @if (ed()?.studentId === r.studentId) { <tr><td colspan="9" style="background:var(--sunk)">
             <form class="bar" style="margin:0" (ngSubmit)="saveDiscount()">
               <b>Discount for {{ r.name }}</b>
@@ -131,8 +115,51 @@ import { ClassPipe, InrPipe } from '../../core/format';
                 <td><button class="btn sm pri" [disabled]="pBusy() === 'b' + b.id" (click)="saveBusFee(b)">Save</button></td></tr> }
           </tbody></table></div></section> }
     }
-  </div>`,
-  styles: [`.ftabs{display:flex;gap:6px;flex-wrap:wrap}.ftabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 16px;border-radius:99px;font-weight:600;cursor:pointer}
+  </div>
+  @if (rc(); as r) {
+    <div class="ov" (click)="closeReceipt()"><div class="dlg" role="dialog" aria-modal="true" [attr.aria-label]="'Receive payment from ' + r.name" (click)="$event.stopPropagation()">
+      <header><div class="ico" aria-hidden="true">₹</div><div><h2>Receive payment</h2><p>{{ r.name }} · Class {{ r.classCode | cls }}</p></div><button class="x" type="button" (click)="closeReceipt()" aria-label="Close">✕</button></header>
+      <div class="sum"><div><span>Fee</span><b>{{ r.feeNet ?? (r.feeTotal - r.feeDiscount) | inr }}</b></div><div class="g"><span>Paid</span><b>{{ r.feePaid | inr }}</b></div><div class="b"><span>Due</span><b>{{ r.feeDue | inr }}</b></div></div>
+      <form (ngSubmit)="saveReceipt()">
+        <div class="row2">
+          <label>Receipt number<input name="rno" [(ngModel)]="rNo" maxlength="30" placeholder="from the paper receipt" autocomplete="off" required></label>
+          <label>Date<input name="rdate" type="date" [(ngModel)]="rDate" [max]="today"></label>
+        </div>
+        <label>Amount received (₹)<input name="ramt" class="amt" type="number" min="1" [max]="r.feeDue" [(ngModel)]="rAmt" inputmode="numeric" required></label>
+        <div class="quick"><button type="button" (click)="rAmt = r.feeDue">Full {{ r.feeDue | inr }}</button>@if (r.feeDue > 1) { <button type="button" (click)="rAmt = halfOf(r.feeDue)">Half {{ halfOf(r.feeDue) | inr }}</button> }</div>
+        <fieldset><legend>Paid by</legend><div class="modes">@for (m of modes; track m.v) { <button type="button" [class.on]="rMode === m.v" (click)="rMode = m.v" [attr.aria-pressed]="rMode === m.v"><span aria-hidden="true">{{ m.i }}</span>{{ m.t }}</button> }</div></fieldset>
+        <label>Note (optional)<input name="rnote" [(ngModel)]="rNote" maxlength="200" placeholder="cheque number, bank reference…" autocomplete="off"></label>
+        <div class="after" [class.ok]="(r.feeDue - (rAmt || 0)) === 0"><span>Due after this payment</span><b>{{ (r.feeDue - (rAmt || 0)) | inr }}</b></div>
+        @if (rErr()) { <div class="err" role="alert">{{ rErr() }}</div> }
+        <div class="acts"><button class="btn" type="button" (click)="closeReceipt()">Cancel</button><button class="btn acc" type="submit" [disabled]="rBusy()">{{ rBusy() ? 'Saving…' : 'Save receipt' }}</button></div>
+      </form>
+      @if (rList().length) { <details class="hist"><summary>Earlier receipts ({{ rList().length }})</summary>
+        <ul>@for (p of rList(); track p.id) { <li><span class="mono">{{ p.receiptNo }}</span><span>{{ p.date }} · {{ p.mode }}</span><b>{{ p.amount | inr }}</b>
+          @if (p.recordedBy) { @if (voidId() === p.id) { <button class="btn sm danger" type="button" (click)="voidReceipt(p)">Yes, cancel</button><button class="btn sm" type="button" (click)="voidId.set(null)">No</button> } @else { <button class="btn sm" type="button" (click)="voidId.set(p.id)">Cancel receipt</button> } }</li> }</ul></details> }
+    </div></div>
+  }`,
+  styles: [`.ov{position:fixed;inset:0;z-index:60;background:rgb(10 20 45/.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:fade .15s}
+    .dlg{width:min(520px,100%);max-height:92vh;overflow:auto;background:var(--surface);border-radius:20px;box-shadow:0 24px 60px rgb(10 20 45/.4);animation:rise .18s}
+    .dlg header{display:flex;gap:12px;align-items:center;padding:16px 18px;background:var(--grad);color:#fff;position:sticky;top:0}
+    .dlg header h2{margin:0;font-size:18px;color:#fff}.dlg header p{margin:2px 0 0;opacity:.85;font-size:13px}
+    .ico{width:42px;height:42px;border-radius:12px;background:rgb(255 255 255/.2);display:grid;place-items:center;font:700 22px var(--display)}
+    .x{margin-left:auto;border:0;background:rgb(255 255 255/.2);color:#fff;width:32px;height:32px;border-radius:99px;cursor:pointer}
+    .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 18px 4px}.sum div{background:var(--sunk);border-radius:12px;padding:8px 12px}
+    .sum span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.sum b{font:700 17px var(--mono)}.sum .g b{color:var(--good)}.sum .b b{color:var(--bad)}
+    .dlg form{padding:8px 18px 16px;display:grid;gap:12px}.dlg label,.dlg fieldset{display:grid;gap:4px;font-weight:600;font-size:13px;color:var(--muted);border:0;padding:0;margin:0}
+    .dlg input{font:500 15px var(--body);color:var(--ink);width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--sunk)}.dlg input:focus{outline:2px solid var(--brand);outline-offset:0;background:var(--surface)}.dlg .amt{font:700 24px var(--mono);padding:10px 12px}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .quick{display:flex;gap:8px;margin-top:-4px}.quick button{border:1px dashed var(--brand);background:none;color:var(--brand);border-radius:99px;padding:4px 12px;cursor:pointer;font-weight:600;font-size:13px}
+    .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));gap:8px}
+    .modes button{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 6px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font-weight:600;font-size:13px}
+    .modes button.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--surface));color:var(--brand)}
+    .after{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:12px;background:var(--warn-soft);color:var(--warn)}.after b{font:700 18px var(--mono)}.after.ok{background:var(--good-soft);color:var(--good)}
+    .acts{display:flex;gap:10px;justify-content:flex-end}.acts .btn{min-width:110px}
+    .hist{padding:0 18px 16px}.hist summary{cursor:pointer;font-weight:600;color:var(--muted);font-size:13px}.hist ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+    .hist li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;justify-content:space-between;background:var(--sunk);border-radius:10px;padding:8px 10px;font-size:13px}
+    @keyframes fade{from{opacity:0}}@keyframes rise{from{transform:translateY(12px);opacity:0}}
+    @media (max-width:480px){.row2{grid-template-columns:1fr}.sum b{font-size:15px}}
+    .ftabs{display:flex;gap:6px;flex-wrap:wrap}.ftabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 16px;border-radius:99px;font-weight:600;cursor:pointer}
     .ftabs button.on{background:var(--grad);color:#fff;border-color:transparent}.cnt{margin-left:6px;background:var(--accent-soft);color:var(--warn);border-radius:99px;padding:0 7px;font-size:12px}`],
 })
 export class FeesComponent implements OnInit {
@@ -141,6 +168,10 @@ export class FeesComponent implements OnInit {
   plan = signal<any>(null); pBusy = signal(''); private pIn: Record<string, string> = {};
   bClass = ''; bMode = 'percent'; bVal = 0; bWhy = ''; bConfirm = signal(false); bBusy = signal(false); bResult = signal<any>(null); dd = signal<any>(null); dq = ''; dclass = ''; private td: any;
   rc = signal<any>(null); rList = signal<any[]>([]); rErr = signal(''); rBusy = signal(false); voidId = signal<number | null>(null);
+  readonly modes = [{ v: 'CASH', t: 'Cash', i: '💵' }, { v: 'UPI', t: 'UPI', i: '📱' }, { v: 'CARD', t: 'Card', i: '💳' }, { v: 'CHEQUE', t: 'Cheque', i: '🧾' }, { v: 'BANK', t: 'Bank', i: '🏦' }];
+  halfOf = (n: number) => Math.ceil(n / 2);
+  @HostListener('document:keydown.escape') onEsc() { if (this.rc()) this.closeReceipt(); }
+  closeReceipt() { this.rc.set(null); this.rErr.set(''); this.voidId.set(null); }
   rNo = ''; rAmt = 0; rMode = 'CASH'; rDate = ''; rNote = ''; today = new Date().toISOString().slice(0, 10);
   ed = signal<any>(null); amt = 0; pct = 0; why = '';
   d = signal<any>(null); classes = signal<any[]>([]); q = ''; classCode = ''; status = 'due'; private t: any;
@@ -152,7 +183,6 @@ export class FeesComponent implements OnInit {
   load() { this.api.get('/fees', { q: this.q, classCode: this.classCode, status: this.status }).subscribe(r => this.d.set(r)); }
   edit(r: any) { this.rc.set(null); this.ed.set(this.ed()?.studentId === r.studentId ? null : r); this.amt = r.feeDiscount || 0; this.pct = r.feeTotal ? Math.round(this.amt * 1000 / r.feeTotal) / 10 : 0; this.why = r.discountReason || ''; }
   openReceipt(r: any) {
-    if (this.rc()?.studentId === r.studentId) { this.rc.set(null); return; }
     this.ed.set(null); this.rErr.set(''); this.voidId.set(null);
     this.rc.set(r); this.rNo = ''; this.rAmt = r.feeDue; this.rMode = 'CASH'; this.rDate = this.today; this.rNote = '';
     this.loadReceipts(r.studentId);
@@ -162,7 +192,7 @@ export class FeesComponent implements OnInit {
     const r = this.rc(); if (!r) return;
     this.rErr.set(''); this.rBusy.set(true);
     this.api.post<any>('/fees/receipt', { studentId: r.studentId, receiptNo: this.rNo, amount: Number(this.rAmt), mode: this.rMode, date: this.rDate || null, note: this.rNote }).subscribe({
-      next: x => { this.rBusy.set(false); this.toast.show('Receipt ' + x.receipt.receiptNo + ' saved. Pending fee is now Rs ' + x.feeDue); this.rNo = ''; this.rNote = ''; this.rAmt = x.feeDue; this.rc.set({ ...r, feeDue: x.feeDue, feePaid: x.feePaid }); this.loadReceipts(r.studentId); this.load(); },
+      next: x => { this.rBusy.set(false); this.toast.show('Receipt ' + x.receipt.receiptNo + ' saved. Pending fee is now Rs ' + x.feeDue); this.closeReceipt(); this.load(); },
       error: e => { this.rBusy.set(false); this.rErr.set(errText(e)); } });
   }
   voidReceipt(p: any) {
