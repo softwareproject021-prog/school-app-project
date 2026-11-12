@@ -1,13 +1,14 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Api, errText } from '../../core/api.service';
 import { Auth } from '../../core/auth.service';
 import { InrPipe, ClassPipe } from '../../core/format';
 import { longToday } from '../../core/dates';
+import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component';
 
 /** The principal's home: a greeting, quick actions, today's attendance, fee collection, the week's attendance trend, and what needs attention. */
 @Component({
-  selector: 'app-dashboard', standalone: true, imports: [RouterLink, InrPipe, ClassPipe],
+  selector: 'app-dashboard', standalone: true, imports: [RouterLink, InrPipe, ClassPipe, AbsencePieComponent],
   styles: [`
     .hero{border-radius:16px;background:var(--grad);color:#fff;padding:22px 22px 18px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end}
     .hero h1{margin:0;font-size:26px;line-height:1.2;color:#fff}.hero p{margin:4px 0 0;opacity:.85}
@@ -30,6 +31,19 @@ import { longToday } from '../../core/dates';
     .trend .bar{width:100%;max-width:34px;border-radius:8px 8px 3px 3px;background:var(--grad);min-height:4px}
     .trend .bar.none{background:var(--line)}
     .trend small{font-size:11px;color:var(--muted)}.trend .pc{font:600 11px var(--mono)}
+    .rings{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{background:var(--sunk);border:1px solid var(--line);padding:4px 12px;border-radius:99px;font-size:14px}
+    h3{font:600 15px/1.3 var(--display);margin:16px 0 8px}
+    .ov{position:fixed;inset:0;z-index:60;background:rgb(10 20 45/.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:fade .15s}
+    .dlg{width:min(440px,100%);max-height:80vh;display:flex;flex-direction:column;background:var(--surface);border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgb(10 20 45/.4);animation:rise .18s}
+    .dlg header{display:flex;gap:12px;align-items:center;padding:16px 18px;background:color-mix(in srgb,var(--c) 14%,var(--surface));border-bottom:3px solid var(--c)}
+    .dlg .sw{width:14px;height:44px;border-radius:99px;background:var(--c);flex:none}.dlg h2{margin:0;font-size:18px}.dlg header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+    .dlg .x{margin-left:auto;border:0;background:rgb(0 0 0/.06);width:32px;height:32px;border-radius:99px;cursor:pointer;color:var(--ink);font-size:14px}
+    .dlg ul{list-style:none;margin:0;padding:8px 10px;overflow:auto;display:grid;gap:6px}
+    .dlg li{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;background:var(--sunk)}
+    .dlg .av{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#fff;font:700 14px var(--display)}
+    .dlg .nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.dlg .nt{font-size:12px;color:var(--muted);white-space:nowrap}
+    .dlg .none{padding:20px;text-align:center;color:var(--muted);margin:0}.dlg footer{padding:12px 16px;border-top:1px solid var(--line);text-align:right}
+    @keyframes fade{from{opacity:0}}@keyframes rise{from{transform:translateY(12px);opacity:0}}
     .todo{display:grid;gap:8px}
     .todo a,.todo div.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--sunk);color:inherit;text-decoration:none;border:1px solid var(--line)}
     .todo .warn{background:var(--warn-soft);border-color:transparent}.todo .bad{background:var(--bad-soft);border-color:transparent}.todo .ok{background:var(--good-soft);border-color:transparent}
@@ -86,6 +100,18 @@ import { longToday } from '../../core/dates';
       </section>
     </div>
 
+    @if (st(); as s) {
+    <div class="grid2">
+      <section class="panel"><div class="ph"><h2>Students absent today</h2><span class="muted" style="font-size:13px">{{ s.attendance.today.absent }} of {{ s.attendance.today.students }} · tap a colour for names</span></div>
+        <app-absence-pie title="Absent, class by class" [slices]="studentSlices()" [centerText]="s.attendance.today.absent + ''" sub="absent today" emptyText="Nobody absent" (pick)="openClass($event)"/>
+      </section>
+      @if (s.teachers) {
+      <section class="panel"><div class="ph"><h2>Teachers absent today</h2><span class="muted" style="font-size:13px">{{ s.teachers.onLeaveToday }} of {{ s.teachers.total }} · tap a colour for details</span></div>
+        <app-absence-pie title="On leave today" [slices]="teacherSlices()" [centerText]="s.teachers.onLeaveToday + ''" sub="on leave today" emptyText="All teachers present" (pick)="openTeacher($event)"/>
+      </section> }
+    </div>
+    }
+
     <div class="grid2">
       <section class="panel"><div class="ph"><h2>Needs your attention</h2></div>
         <div class="todo">
@@ -108,7 +134,15 @@ import { longToday } from '../../core/dates';
           @else { <div><span class="pill">Not submitted</span></div><span class="ns">–/{{ c.strength }}</span> }
         </div> }</div></section>
     } @else if (!error()) { <div class="empty"><span class="spin"></span> Loading…</div> }
-  </div>`,
+  </div>
+  @if (pop(); as p) {
+    <div class="ov" (click)="pop.set(null)"><div class="dlg" role="dialog" aria-modal="true" [attr.aria-label]="p.title" (click)="$event.stopPropagation()" [style.--c]="p.color">
+      <header><span class="sw"></span><div><h2>{{ p.title }}</h2><p>{{ p.sub }}</p></div><button class="x" type="button" (click)="pop.set(null)" aria-label="Close">✕</button></header>
+      @if (p.rows.length) { <ul>@for (r of p.rows; track $index) { <li><span class="av">{{ r.ini }}</span><span class="nm">{{ r.name }}</span>@if (r.note) { <span class="nt">{{ r.note }}</span> }</li> }</ul> }
+      @else { <p class="none">No names to show.</p> }
+      <footer><button class="btn pri" type="button" (click)="pop.set(null)">Close</button></footer>
+    </div></div>
+  }`,
 })
 export class DashboardComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth);
@@ -117,5 +151,25 @@ export class DashboardComponent implements OnInit {
   school = () => this.auth.viewing()?.name ?? this.auth.user()?.schoolName ?? 'School';
   greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
   dayName(iso: string) { return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' }); }
-  ngOnInit() { this.api.get('/school/dashboard').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) }); }
+  st = signal<any>(null); pop = signal<{ title: string; sub: string; color: string; rows: { name: string; ini: string; note?: string }[] } | null>(null);
+  private readonly PAL = ['#1d4ed8', '#e11d48', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#ea580c', '#65a30d', '#4f46e5', '#0d9488', '#b45309'];
+  private ini = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  private colorOfClass(code: string) { const i = this.st().attendance.classes.findIndex((c: any) => c.code === code); return this.PAL[Math.max(i, 0) % this.PAL.length]; }
+  private label(code: string) { return 'Class ' + code.replace(/^(\d+)(\w)$/, '$1-$2'); }
+  studentSlices(): PieSlice[] { return this.st().attendance.classes.filter((c: any) => c.submitted && c.absentToday > 0).map((c: any) => ({ key: c.code, label: this.label(c.code), value: c.absentToday, color: this.colorOfClass(c.code) })); }
+  teacherSlices(): PieSlice[] { return this.st().teachers.teachers.filter((t: any) => t.onLeaveToday).map((t: any, i: number) => ({ key: String(t.id), label: t.name, value: 1, color: this.PAL[i % this.PAL.length] })); }
+  openClass(code: string) {
+    const c = this.st().attendance.classes.find((k: any) => k.code === code); if (!c) return;
+    this.pop.set({ title: this.label(code) + ' · absent today', sub: c.absentToday + ' of ' + c.strength + ' students absent', color: this.colorOfClass(code), rows: c.absentNames.map((n: string) => ({ name: n, ini: this.ini(n) })) });
+  }
+  openTeacher(id: string) {
+    const list = this.st().teachers.teachers.filter((t: any) => t.onLeaveToday); const i = list.findIndex((t: any) => String(t.id) === id); if (i < 0) return;
+    const t = list[i];
+    this.pop.set({ title: t.name + ' · on leave today', sub: (t.subject || 'Teacher') + ' · ' + t.leaveDays + ' leave day(s) in the last ' + this.st().days + ' days', color: this.PAL[i % this.PAL.length], rows: [{ name: t.name, ini: this.ini(t.name), note: t.subject }] });
+  }
+  @HostListener('document:keydown.escape') closePop() { this.pop.set(null); }
+  ngOnInit() {
+    this.api.get('/school/dashboard').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) });
+    this.api.get('/stats/school', { days: 30 }).subscribe({ next: r => this.st.set(r), error: () => this.st.set(null) });
+  }
 }

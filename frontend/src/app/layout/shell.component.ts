@@ -14,7 +14,7 @@ const MAIN: Item[] = [
   I('Platform', '/schools', 'Schools', 'building', 'Schools'), I('Platform', '/platform-stats', 'Statistics', 'chart', 'Stats'),
   I('Platform', '/add-school', 'Add school', 'plus', 'Add'), I('Platform', '/invites', 'Principal invites', 'mail', 'Invites'), I('Platform', '/explorer', 'Data explorer', 'db')];
 const ORG: Item[] = [
-  I('Today', '/dashboard', 'Home', 'home', 'Home'), I('Today', '/attendance', 'Attendance', 'check', 'Attendance'), I('Today', '/statistics', 'Statistics', 'chart', 'Stats'),
+  I('Today', '/dashboard', 'Home', 'home', 'Home'), I('Today', '/attendance', 'Attendance', 'check', 'Attendance'),
   I('Today', '/leave', 'Leave & substitutes', 'leave'),
   I('School', '/fees', 'Fees', 'rupee', 'Fees'), I('School', '/classes', 'Classes', 'school'), I('School', '/teachers', 'Teachers', 'user'), I('School', '/admission', 'New admission', 'plus'), I('School', '/students', 'Students', 'users'), I('School', '/promote', 'Promote session', 'swap'),
   I('School', '/timetable', 'Timetable', 'calendar'), I('School', '/marks', 'Marks', 'book'), I('School', '/homework', 'Homework', 'clipboard'), I('School', '/invites', 'Invites', 'mail'),

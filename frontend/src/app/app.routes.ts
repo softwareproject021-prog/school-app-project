@@ -28,7 +28,7 @@ export const routes: Routes = [
       { path: 'platform-stats', canActivate: [M], loadComponent: () => import('./pages/platform/platform-stats.component').then(m => m.PlatformStatsComponent) },
       // Org Admin (principal)
       { path: 'dashboard', canActivate: [O], loadComponent: () => import('./pages/org/dashboard.component').then(m => m.DashboardComponent) },
-      { path: 'statistics', canActivate: [O], loadComponent: () => import('./pages/org/statistics.component').then(m => m.StatisticsComponent) },
+      { path: 'statistics', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'leave', canActivate: [O], loadComponent: () => import('./pages/org/leave.component').then(m => m.LeaveComponent) },
       { path: 'classes', canActivate: [O], loadComponent: () => import('./pages/org/classes.component').then(m => m.ClassesComponent) },
       { path: 'teachers', canActivate: [O], loadComponent: () => import('./pages/org/teachers.component').then(m => m.TeachersComponent) },

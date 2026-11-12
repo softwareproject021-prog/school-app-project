@@ -38,5 +38,5 @@ export class PlatformStatsComponent implements OnInit {
   d = signal<any>(null); error = signal(''); days = 30;
   ngOnInit() { this.load(); }
   load() { this.api.get('/stats/platform', { days: this.days }).subscribe({ next: r => { this.d.set(r); this.error.set(''); }, error: e => this.error.set(errText(e)) }); }
-  view(s: any) { this.auth.viewAs(s.id, s.name, '/statistics'); }
+  view(s: any) { this.auth.viewAs(s.id, s.name, '/dashboard'); }
 }
