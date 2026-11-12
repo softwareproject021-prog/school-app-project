@@ -25,7 +25,23 @@ import { ClassPipe, InrPipe } from '../../core/format';
           <tr><td>{{ r.classCode | cls }}</td><td>{{ r.name }}</td><td class="mono">{{ r.phone }}</td><td class="n">{{ r.feeTotal | inr }}</td>
             <td class="n">{{ r.feeDiscount ? (r.feeDiscount | inr) : '—' }}@if (r.discountReason) { <div class="muted" style="font-size:12px">{{ r.discountReason }}</div> }</td><td class="n">{{ r.feePaid | inr }}</td><td class="n">{{ r.feeDue | inr }}</td>
             <td><span class="pill" [class.good]="r.feeDue===0" [class.warn]="r.feePaid>0 && r.feeDue>0" [class.bad]="r.feePaid===0">{{ r.feeDue === 0 ? 'Paid' : r.feePaid ? 'Partial' : 'Due' }}</span></td>
-            <td><button class="btn sm" (click)="edit(r)">{{ r.feeDiscount ? 'Change discount' : 'Give discount' }}</button></td></tr>
+            <td><button class="btn sm pri" (click)="openReceipt(r)" [attr.aria-label]="'Receive payment from the parent of ' + r.name">Receive payment</button> <button class="btn sm" (click)="edit(r)">{{ r.feeDiscount ? 'Change discount' : 'Give discount' }}</button></td></tr>
+          @if (rc()?.studentId === r.studentId) { <tr><td colspan="9" style="background:var(--sunk)">
+            <form class="bar" style="margin:0" (ngSubmit)="saveReceipt()">
+              <b>Payment received at the office from {{ r.name }}'s parent</b>
+              <label>Receipt no.<input name="rno" [(ngModel)]="rNo" maxlength="30" placeholder="from the paper receipt" required></label>
+              <label>Amount (₹)<input name="ramt" type="number" min="1" [max]="r.feeDue" [(ngModel)]="rAmt" required></label>
+              <label>Mode<select name="rmode" [(ngModel)]="rMode"><option value="CASH">Cash</option><option value="CHEQUE">Cheque</option><option value="UPI">UPI at counter</option><option value="CARD">Card</option><option value="BANK">Bank transfer</option></select></label>
+              <label>Date<input name="rdate" type="date" [(ngModel)]="rDate" [max]="today"></label>
+              <label>Note<input name="rnote" [(ngModel)]="rNote" maxlength="200" placeholder="cheque no., etc."></label>
+              <span class="muted">Due after this: <b>{{ r.feeDue - (rAmt || 0) | inr }}</b></span>
+              <button class="btn pri" type="submit" [disabled]="rBusy()">{{ rBusy() ? 'Saving…' : 'Save receipt' }}</button><button class="btn" type="button" (click)="rc.set(null)">Close</button>
+            </form>
+            @if (rErr()) { <div class="err" role="alert" style="margin-top:8px">{{ rErr() }}</div> }
+            @if (rList().length) { <div class="tw" style="margin-top:10px"><table><thead><tr><th>Receipt</th><th>Date</th><th>Mode</th><th class="n">Amount</th><th>Note</th><th></th></tr></thead><tbody>
+              @for (p of rList(); track p.id) { <tr><td class="mono">{{ p.receiptNo }}</td><td>{{ p.date }}</td><td>{{ p.mode }}</td><td class="n">{{ p.amount | inr }}</td><td class="muted">{{ p.note || (p.recordedBy ? 'Office' : 'Online') }}</td>
+                <td>@if (p.recordedBy) { @if (voidId() === p.id) { <button class="btn sm danger" type="button" (click)="voidReceipt(p)">Yes, cancel {{ p.receiptNo }}</button> <button class="btn sm" type="button" (click)="voidId.set(null)">No</button> } @else { <button class="btn sm" type="button" (click)="voidId.set(p.id)">Cancel receipt</button> } }</td></tr> }</tbody></table></div> }
+          </td></tr> }
           @if (ed()?.studentId === r.studentId) { <tr><td colspan="9" style="background:var(--sunk)">
             <form class="bar" style="margin:0" (ngSubmit)="saveDiscount()">
               <b>Discount for {{ r.name }}</b>
@@ -124,6 +140,8 @@ export class FeesComponent implements OnInit {
   tab = signal<'reg' | 'disc' | 'bulk' | 'plan'>('reg');
   plan = signal<any>(null); pBusy = signal(''); private pIn: Record<string, string> = {};
   bClass = ''; bMode = 'percent'; bVal = 0; bWhy = ''; bConfirm = signal(false); bBusy = signal(false); bResult = signal<any>(null); dd = signal<any>(null); dq = ''; dclass = ''; private td: any;
+  rc = signal<any>(null); rList = signal<any[]>([]); rErr = signal(''); rBusy = signal(false); voidId = signal<number | null>(null);
+  rNo = ''; rAmt = 0; rMode = 'CASH'; rDate = ''; rNote = ''; today = new Date().toISOString().slice(0, 10);
   ed = signal<any>(null); amt = 0; pct = 0; why = '';
   d = signal<any>(null); classes = signal<any[]>([]); q = ''; classCode = ''; status = 'due'; private t: any;
   ngOnInit() { this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); this.load(); this.loadD(); }
@@ -132,7 +150,25 @@ export class FeesComponent implements OnInit {
   loadD() { this.api.get('/fees/discounts', { q: this.dq, classCode: this.dclass }).subscribe(r => this.dd.set(r)); }
   typed() { clearTimeout(this.t); this.t = setTimeout(() => this.load(), 250); }
   load() { this.api.get('/fees', { q: this.q, classCode: this.classCode, status: this.status }).subscribe(r => this.d.set(r)); }
-  edit(r: any) { this.ed.set(this.ed()?.studentId === r.studentId ? null : r); this.amt = r.feeDiscount || 0; this.pct = r.feeTotal ? Math.round(this.amt * 1000 / r.feeTotal) / 10 : 0; this.why = r.discountReason || ''; }
+  edit(r: any) { this.rc.set(null); this.ed.set(this.ed()?.studentId === r.studentId ? null : r); this.amt = r.feeDiscount || 0; this.pct = r.feeTotal ? Math.round(this.amt * 1000 / r.feeTotal) / 10 : 0; this.why = r.discountReason || ''; }
+  openReceipt(r: any) {
+    if (this.rc()?.studentId === r.studentId) { this.rc.set(null); return; }
+    this.ed.set(null); this.rErr.set(''); this.voidId.set(null);
+    this.rc.set(r); this.rNo = ''; this.rAmt = r.feeDue; this.rMode = 'CASH'; this.rDate = this.today; this.rNote = '';
+    this.loadReceipts(r.studentId);
+  }
+  loadReceipts(id: number) { this.api.get<any[]>('/fees/payments', { studentId: id }).subscribe(l => this.rList.set(l)); }
+  saveReceipt() {
+    const r = this.rc(); if (!r) return;
+    this.rErr.set(''); this.rBusy.set(true);
+    this.api.post<any>('/fees/receipt', { studentId: r.studentId, receiptNo: this.rNo, amount: Number(this.rAmt), mode: this.rMode, date: this.rDate || null, note: this.rNote }).subscribe({
+      next: x => { this.rBusy.set(false); this.toast.show('Receipt ' + x.receipt.receiptNo + ' saved. Pending fee is now Rs ' + x.feeDue); this.rNo = ''; this.rNote = ''; this.rAmt = x.feeDue; this.rc.set({ ...r, feeDue: x.feeDue, feePaid: x.feePaid }); this.loadReceipts(r.studentId); this.load(); },
+      error: e => { this.rBusy.set(false); this.rErr.set(errText(e)); } });
+  }
+  voidReceipt(p: any) {
+    this.voidId.set(null); const r = this.rc();
+    this.api.delete<any>('/fees/receipt/' + p.id).subscribe({ next: x => { this.toast.show('Receipt ' + p.receiptNo + ' cancelled'); if (r) { this.rc.set({ ...r, feeDue: x.feeDue, feePaid: x.feePaid }); this.rAmt = x.feeDue; this.loadReceipts(r.studentId); } this.load(); }, error: e => this.rErr.set(errText(e)) });
+  }
   pctFrom() { const t = this.ed()?.feeTotal; this.pct = t ? Math.round((this.amt || 0) * 1000 / t) / 10 : 0; }
   amtFrom(total: number) { this.amt = Math.round(total * (this.pct || 0) / 100); }
   saveDiscount() {
