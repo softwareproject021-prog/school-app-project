@@ -4,10 +4,11 @@ import { Api, errText } from '../../core/api.service';
 import { Auth } from '../../core/auth.service';
 import { InrPipe, ClassPipe } from '../../core/format';
 import { longToday } from '../../core/dates';
+import { DonutComponent, Slice } from '../../core/donut.component';
 
 /** The principal's home: a greeting, quick actions, today's attendance, fee collection, the week's attendance trend, and what needs attention. */
 @Component({
-  selector: 'app-dashboard', standalone: true, imports: [RouterLink, InrPipe, ClassPipe],
+  selector: 'app-dashboard', standalone: true, imports: [RouterLink, InrPipe, ClassPipe, DonutComponent],
   styles: [`
     .hero{border-radius:16px;background:var(--grad);color:#fff;padding:22px 22px 18px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end}
     .hero h1{margin:0;font-size:26px;line-height:1.2;color:#fff}.hero p{margin:4px 0 0;opacity:.85}
@@ -30,6 +31,8 @@ import { longToday } from '../../core/dates';
     .trend .bar{width:100%;max-width:34px;border-radius:8px 8px 3px 3px;background:var(--grad);min-height:4px}
     .trend .bar.none{background:var(--line)}
     .trend small{font-size:11px;color:var(--muted)}.trend .pc{font:600 11px var(--mono)}
+    .rings{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{background:var(--sunk);border:1px solid var(--line);padding:4px 12px;border-radius:99px;font-size:14px}
+    h3{font:600 15px/1.3 var(--display);margin:16px 0 8px}
     .todo{display:grid;gap:8px}
     .todo a,.todo div.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--sunk);color:inherit;text-decoration:none;border:1px solid var(--line)}
     .todo .warn{background:var(--warn-soft);border-color:transparent}.todo .bad{background:var(--bad-soft);border-color:transparent}.todo .ok{background:var(--good-soft);border-color:transparent}
@@ -86,6 +89,31 @@ import { longToday } from '../../core/dates';
       </section>
     </div>
 
+    @if (st(); as s) {
+    <div class="grid2">
+      <section class="panel"><div class="ph"><h2>Students absent</h2><span class="muted" style="font-size:13px">{{ s.attendance.today.absent }} today of {{ s.attendance.today.students }}</span></div>
+        <div class="rings">
+          <app-donut title="Absent today, by class" [slices]="absentByClass()" [centerText]="s.attendance.today.absent + ''" sub="absent" [size]="140" [selected]="picked()" (pick)="pick($event)"/>
+          <app-donut [title]="'Last ' + s.attendance.period.days + ' days'" [slices]="studentsPeriod()" [centerText]="s.attendance.period.pct + '%'" sub="present" [size]="140"/>
+        </div>
+        @if (picked()) { <h3>Class {{ picked() | cls }}: absent today</h3>
+          @if (pickedNames().length) { <div class="chips">@for (n of pickedNames(); track $index) { <span class="chip">{{ n }}</span> }</div> } @else { <div class="muted">No one is absent.</div> } }
+        @if (s.attendance.frequentAbsentees.length) { <h3>Absent most often</h3>
+          <div class="feed">@for (x of s.attendance.frequentAbsentees.slice(0, 3); track x.studentId) { <div class="it"><span>{{ x.name }} <span class="muted">· {{ x.classCode | cls }}</span></span><b class="mono">{{ x.absentDays }} days</b></div> }</div> }
+      </section>
+      @if (s.teachers) {
+      <section class="panel"><div class="ph"><h2>Teachers absent</h2><span class="muted" style="font-size:13px">{{ s.teachers.onLeaveToday }} on leave today of {{ s.teachers.total }}</span></div>
+        <div class="rings">
+          <app-donut title="Today" [slices]="teachersToday()" [centerText]="s.teachers.total - s.teachers.onLeaveToday + ''" sub="present" [size]="140"/>
+          <app-donut [title]="'Leave days, last ' + s.days + ' days'" [slices]="leaveByTeacher()" [centerText]="s.teachers.leaveDays + ''" sub="leave days" [size]="140"/>
+        </div>
+        <h3>On leave today</h3>
+        @if (onLeave().length === 0) { <div class="muted">Every teacher is present today.</div> }
+        <div class="chips">@for (t of onLeave(); track t.id) { <span class="chip">{{ t.name }} · {{ t.subject }}</span> }</div>
+      </section> }
+    </div>
+    }
+
     <div class="grid2">
       <section class="panel"><div class="ph"><h2>Needs your attention</h2></div>
         <div class="todo">
@@ -117,5 +145,18 @@ export class DashboardComponent implements OnInit {
   school = () => this.auth.viewing()?.name ?? this.auth.user()?.schoolName ?? 'School';
   greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
   dayName(iso: string) { return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' }); }
-  ngOnInit() { this.api.get('/school/dashboard').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) }); }
+  st = signal<any>(null); picked = signal<string | null>(null);
+  private readonly PAL = ['#1d4ed8', '#0891b2', '#7c3aed', '#db2777', '#ea580c', '#ca8a04', '#16a34a', '#0d9488', '#4f46e5', '#be123c', '#65a30d', '#9333ea'];
+  private readonly OK = 'var(--good, #2b8a55)'; private readonly BAD = 'var(--bad, #c0392b)';
+  pick(k: string) { this.picked.set(this.picked() === k ? null : k); }
+  studentsPeriod(): Slice[] { const p = this.st().attendance.period; return [{ key: 'p', label: 'Present days', value: p.present, color: this.OK }, { key: 'a', label: 'Absent days', value: p.absent, color: this.BAD }]; }
+  absentByClass(): Slice[] { return this.st().attendance.classes.filter((c: any) => c.submitted && c.absentToday > 0).map((c: any, i: number) => ({ key: c.code, label: 'Class ' + c.code.replace(/^(\d+)(\w)$/, '$1-$2'), value: c.absentToday, color: this.PAL[i % this.PAL.length] })); }
+  pickedNames(): string[] { const c = this.st().attendance.classes.find((k: any) => k.code === this.picked()); return c ? c.absentNames : []; }
+  teachersToday(): Slice[] { const t = this.st().teachers; return [{ key: 'p', label: 'Present', value: t.total - t.onLeaveToday, color: this.OK }, { key: 'l', label: 'On leave', value: t.onLeaveToday, color: this.BAD }]; }
+  leaveByTeacher(): Slice[] { return this.st().teachers.teachers.filter((t: any) => t.leaveDays > 0).map((t: any, i: number) => ({ key: String(t.id), label: t.name, value: t.leaveDays, color: this.PAL[i % this.PAL.length] })); }
+  onLeave(): any[] { return this.st().teachers.teachers.filter((t: any) => t.onLeaveToday); }
+  ngOnInit() {
+    this.api.get('/school/dashboard').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) });
+    this.api.get('/stats/school', { days: 30 }).subscribe({ next: r => this.st.set(r), error: () => this.st.set(null) });
+  }
 }
