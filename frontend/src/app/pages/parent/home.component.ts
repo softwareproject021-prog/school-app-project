@@ -15,7 +15,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
       <div class="kpi"><div class="l">Attendance (30 days)</div><div class="v">{{ d.attendancePct }}%</div></div>
       <div class="kpi" [class.bad]="d.feeDue>0" [class.good]="d.feeDue===0"><div class="l">Fee due</div><div class="v">{{ d.feeDue ? (d.feeDue | inr) : 'Nil' }}</div></div>
       <div class="kpi"><div class="l">UT-1 average</div><div class="v">{{ avg(d) }}/50</div></div></div>
-    @if (d.feeDue > 0) { <div class="note">{{ d.feeDue | inr }} school fee is pending. <a class="btn sm acc" routerLink="/child-fees">Pay now</a></div> }
+    @if (d.feeDue > 0) { <div class="note">{{ d.feeDue | inr }} school fee is pending. Pay at the school office. <a class="btn sm acc" routerLink="/child-fees">View fees</a></div> }
     <div class="grid2">
       <section class="panel"><div class="ph"><h2>Attendance · last 30 days</h2></div>
         <div class="days">@for (h of d.history; track h.date) { <span [class.a]="h.absent" [title]="h.absent ? 'Absent' : 'Present'">{{ h.date.slice(8) }}</span> }</div>
