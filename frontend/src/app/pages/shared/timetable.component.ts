@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Api, errText } from '../../core/api.service';
 import { Auth } from '../../core/auth.service';
-import { ClassPipe, DAYS, PERIODS, todayIdx } from '../../core/format';
+import { ClassPipe, DAYS, MAX_PERIODS, PERIODS, periodTime, todayIdx } from '../../core/format';
 
 @Component({
   selector: 'app-timetable', standalone: true, imports: [FormsModule, ClassPipe],
@@ -21,8 +21,8 @@ import { ClassPipe, DAYS, PERIODS, todayIdx } from '../../core/format';
         @if (mode === 'class') { <select [(ngModel)]="classCode" (change)="load()" aria-label="Class">@for (c of editable(); track c) { <option [value]="c">Class {{ c | cls }}</option> }</select> }</div>
     } @else { <p class="muted" style="margin:0 0 12px">{{ role === 'TEACHER' ? 'Your periods for the week, including today\\'s substitute duties.' : 'Your child\\'s class timetable.' }}</p> }
     <div class="tw"><table class="tt"><thead><tr><th>Period</th>@for (d of days; track d; let i = $index) { <th>{{ d }}{{ i === today ? ' · today' : '' }}</th> }</tr></thead><tbody>
-      @for (tm of periods; track tm; let p = $index) {
-        <tr><th>P{{ p + 1 }}<div class="t mono">{{ tm }}</div></th>
+      @for (p of rows(); track p) {
+        <tr><th>P{{ p + 1 }}<div class="t mono">{{ time(p) }}</div></th>
           @for (d of days; track d; let di = $index) {
             @let c = cell(di, p);
             <td [class.today]="di === today" [class.subbed]="c?.substitute">
@@ -36,15 +36,23 @@ import { ClassPipe, DAYS, PERIODS, todayIdx } from '../../core/format';
         @if (p === 2) { <tr><td colspan="7" class="muted" style="text-align:center;font-size:12px">Break 11:15 – 11:30</td></tr> }
         @if (p === 4) { <tr><td colspan="7" class="muted" style="text-align:center;font-size:12px">Lunch 1:00 – 1:45</td></tr> }
       }</tbody></table></div>
+    @if (edit() && canEdit()) { <div class="bar" style="margin:12px 0 0">
+      <button class="btn" (click)="addPeriod()" [disabled]="rows().length >= max">+ Add period</button>
+      @if (canRemove()) { <button class="btn" (click)="removePeriod()">Remove P{{ rows().length }}</button> }
+      <span class="muted" style="font-size:13px">Extra periods start 45 minutes after the one before. Up to {{ max }} periods a day.</span></div> }
   </section>`,
 })
 export class TimetableComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth); private route = inject(ActivatedRoute);
-  role = this.auth.effectiveRole(); days = DAYS; periods = PERIODS; today = todayIdx();
+  role = this.auth.effectiveRole(); days = DAYS; max = MAX_PERIODS; time = periodTime; extra = signal(0); today = todayIdx();
   mode: 'class' | 'teacher' = 'class'; classCode = ''; teacherId: number | null = null;
   classes = signal<any[]>([]); teachers = signal<any[]>([]); slots = signal<any[]>([]);
   editable = signal<string[]>([]); edit = signal(false); error = signal('');
   byClass = () => this.role === 'PARENT' || (this.mode === 'class' && (this.role === 'ORG_ADMIN' || this.editable().length > 0));
+  rows = () => { const hi = this.slots().reduce((m, s) => Math.max(m, s.period + 1), 0); const n = Math.min(MAX_PERIODS, Math.max(PERIODS.length, hi, PERIODS.length + this.extra())); return Array.from({ length: n }, (_, i) => i); };
+  addPeriod() { if (this.rows().length < MAX_PERIODS) this.extra.set(this.rows().length - PERIODS.length + 1); }
+  canRemove = () => { const n = this.rows().length; return n > PERIODS.length && !this.slots().some(s => s.period === n - 1); };
+  removePeriod() { if (this.canRemove()) this.extra.set(this.rows().length - 1 - PERIODS.length); }
   canEditAny = () => this.editable().length > 0;
   canEdit = () => this.byClass() && this.editable().includes(this.classCode);
   setSlot(day: number, period: number, teacherId: number | null) {

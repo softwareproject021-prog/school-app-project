@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Api, errText } from '../../core/api.service';
 import { Toast } from '../../core/toast.service';
-import { ClassPipe, PERIODS } from '../../core/format';
+import { ClassPipe, periodTime } from '../../core/format';
 
 @Component({
   selector: 'app-leave', standalone: true, imports: [FormsModule, ClassPipe],
@@ -27,7 +27,7 @@ import { ClassPipe, PERIODS } from '../../core/format';
           <div class="bar" style="margin:0"><button class="btn acc" (click)="auto(b)">Auto-assign all</button><button class="btn" (click)="cancel(b)">Cancel leave</button></div></div>
         <div class="tw"><table><thead><tr><th>Period</th><th>Time</th><th>Class</th><th>Subject</th><th>Substitute</th><th></th></tr></thead><tbody>
           @for (p of b.periods; track p.classCode + p.period) {
-            <tr><td>P{{ p.period + 1 }}</td><td class="mono">{{ times[p.period] }}</td><td><b>{{ p.classCode | cls }}</b></td><td>{{ p.subject }}</td>
+            <tr><td>P{{ p.period + 1 }}</td><td class="mono">{{ time(p.period) }}</td><td><b>{{ p.classCode | cls }}</b></td><td>{{ p.subject }}</td>
               <td>@if (p.substituteName) { <span class="pill good">{{ p.substituteName }}</span> }
                 @else if (p.noFreeTeacher) { <span class="pill bad">No free teacher — self-study</span> }
                 @else { <select [(ngModel)]="choice[key(p)]" aria-label="Choose substitute">@for (c of p.candidates; track c.teacherId) { <option [ngValue]="c.teacherId">{{ c.sameSubject ? '★ ' : '' }}{{ c.name }} · {{ c.subject }} · {{ c.loadToday }} today</option> }</select> }</td>
@@ -40,7 +40,7 @@ import { ClassPipe, PERIODS } from '../../core/format';
 })
 export class LeaveComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast);
-  times = PERIODS;
+  time = periodTime;
   board = signal<any[]>([]); pending = signal<any[]>([]); teachers = signal<any[]>([]);
   teacherId: number | null = null; choice: Record<string, number> = {};
   key = (p: any) => p.classCode + '|' + p.period;
