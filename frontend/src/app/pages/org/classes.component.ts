@@ -15,10 +15,11 @@ import { ClassPipe } from '../../core/format';
     <section class="panel"><div class="ph"><h2>Add a class</h2></div>
       <form class="form" (ngSubmit)="add()">
         <label>Class<select name="grade" [(ngModel)]="f.grade">@for (g of grades; track g) { <option [ngValue]="g">{{ g }}</option> }</select></label>
-        <label>Section<input type="text" name="section" [(ngModel)]="f.section" maxlength="2" required placeholder="A"></label>
+        <label>Section *<input type="text" name="section" [ngModel]="f.section" (ngModelChange)="setSection($event)" maxlength="2" required placeholder="e.g. A"></label>
+        @if (!sectionOk()) { <div class="err" style="grid-column:1/-1">Enter a section of 1 or 2 letters or numbers, for example A.</div> }
         <label>Room<input type="text" name="room" [(ngModel)]="f.room" placeholder="Optional, e.g. Room 12"></label>
         <label>Class teacher<select name="classTeacherId" [(ngModel)]="f.classTeacherId"><option [ngValue]="null">Decide later</option>@for (t of teachers(); track t.id) { <option [ngValue]="t.id">{{ t.name }} ({{ t.subject }})</option> }</select></label>
-        <div><button class="btn pri" type="submit">Add class</button></div></form>
+        <div><button class="btn pri" type="submit" [disabled]="!sectionOk()">Add class</button></div></form>
       @if (error()) { <div class="err" style="margin-top:10px">{{ error() }}</div> }
     </section> }
   @if (rows().length === 0) {
@@ -66,9 +67,18 @@ export class ClassesComponent implements OnInit {
   }
   ngOnInit() { this.load(); this.api.get<any[]>('/school/teachers').subscribe(t => this.teachers.set(t)); }
   load() { this.api.get('/school/dashboard').subscribe(d => this.rows.set(d.classes)); this.api.get<any[]>('/school/classes').subscribe(c => this.rooms.set(c)); }
+  setSection(v: string) { this.f.section = (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 2); }
+  sectionOk() { return /^[A-Z0-9]{1,2}$/.test((this.f.section || '').trim().toUpperCase()); }
+  nextSection() {
+    const used = new Set((this.rooms() || []).filter((c: any) => +c.grade === +this.f.grade).map((c: any) => String(c.section || '').toUpperCase()));
+    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') if (!used.has(ch)) return ch;
+    return 'A';
+  }
   add() {
     this.error.set('');
-    this.api.post('/school/classes', this.f).subscribe({ next: () => { this.toast.show('Class ' + this.f.grade + this.f.section.toUpperCase() + ' added'); this.f = { ...this.f, section: '', room: '', classTeacherId: null }; this.load(); }, error: e => this.error.set(errText(e)) });
+    if (!this.sectionOk()) { this.error.set('Section must be 1 or 2 letters or numbers, for example A.'); return; }
+    this.f.section = this.f.section.trim().toUpperCase();
+    this.api.post('/school/classes', this.f).subscribe({ next: () => { this.toast.show('Class ' + this.f.grade + this.f.section.toUpperCase() + ' added'); this.f = { ...this.f, room: '', classTeacherId: null }; this.load(); setTimeout(() => this.f.section = this.nextSection(), 400); }, error: e => this.error.set(errText(e)) });
   }
   remove(code: string) { this.api.delete('/school/classes/' + code).subscribe({ next: () => { this.toast.show('Class removed'); this.confirmRemove.set(null); this.load(); }, error: e => { this.confirmRemove.set(null); this.toast.show(errText(e), 6000); } }); }
   generate() {
