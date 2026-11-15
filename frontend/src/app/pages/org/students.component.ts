@@ -22,7 +22,8 @@ import { copyText } from '../../core/clipboard';
           <label>Parent phone<input type="text" name="phone" [(ngModel)]="f.phone" required></label>
           @if (editId()) { <label>Annual fee (₹)<input type="number" name="feeTotal" [(ngModel)]="f.feeTotal"></label>
           <label>Fee paid (₹)<input type="number" name="feePaid" [(ngModel)]="f.feePaid"></label> } @else {
-          <label>Parent email (their login)<input type="email" name="login" [(ngModel)]="f.login" required></label> }
+          <label>Parent email (their login)<input type="email" name="login" [(ngModel)]="f.login" required></label>
+          <p class="muted" style="grid-column:1/-1;margin:0;font-size:13px">The yearly fee set for this class under Fees is applied to the new student automatically.</p> }
           <div><button class="btn pri" type="submit" [disabled]="classes().length === 0">{{ editId() ? 'Save changes' : 'Add & create invite' }}</button></div></form>
         @if (link()) { <div class="note" style="margin-top:12px">Send this link to the parent. It works once and they set their own password. @if (emailOn()) { <b>We also emailed it.</b> } @else { Email is not set up yet, so send the link yourself. }
           <div class="cred" style="margin-top:8px;word-break:break-all">{{ link() }}</div>

@@ -15,6 +15,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
       <div class="kpi"><div class="l">Attendance (30 days)</div><div class="v">{{ d.attendancePct }}%</div></div>
       <div class="kpi" [class.bad]="d.feeDue>0" [class.good]="d.feeDue===0"><div class="l">Fee due</div><div class="v">{{ d.feeDue ? (d.feeDue | inr) : 'Nil' }}</div></div>
       <div class="kpi"><div class="l">UT-1 average</div><div class="v">{{ avg(d) }}/50</div></div></div>
+    @if (holiday(); as h) { <div class="note"><b>{{ h.status === 'ONGOING' ? 'Holiday on now' : 'Holiday' }}: {{ h.title }}</b> · {{ h.from }}{{ h.to !== h.from ? ' to ' + h.to : '' }}. School reopens {{ h.reopens }}. <a class="btn sm" routerLink="/holidays">All holidays</a></div> }
     @if (d.feeDue > 0) { <div class="note">{{ d.feeDue | inr }} school fee is pending. Pay at the school office. <a class="btn sm acc" routerLink="/child-fees">View fees</a></div> }
     <div class="grid2">
       <section class="panel"><div class="ph"><h2>Attendance · last 30 days</h2></div>
@@ -28,7 +29,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
 })
 export class ParentHomeComponent implements OnInit {
   private api = inject(Api);
-  d = signal<any>(null); error = signal('');
+  d = signal<any>(null); error = signal(''); holiday = signal<any>(null);
   avg = (d: any) => d.marks.length ? Math.round(d.marks.reduce((a: number, m: any) => a + m.marks, 0) / d.marks.length) : 0;
-  ngOnInit() { this.api.get('/portal/parent').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) }); }
+  ngOnInit() { this.api.get<any[]>('/holidays').subscribe({ next: r => this.holiday.set(r.find(h => h.status !== 'PAST') ?? null), error: () => {} }); this.api.get('/portal/parent').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) }); }
 }
