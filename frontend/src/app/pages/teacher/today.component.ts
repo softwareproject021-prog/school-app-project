@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Api, errText } from '../../core/api.service';
-import { ClassPipe, PERIODS } from '../../core/format';
+import { ClassPipe, periodTime } from '../../core/format';
 import { longToday } from '../../core/dates';
 
 @Component({
@@ -18,7 +18,7 @@ import { longToday } from '../../core/dates';
       @if (d.periods.length === 0) { <div class="empty">No periods today.</div> } @else {
       <div class="tw"><table><thead><tr><th>Period</th><th>Time</th><th>Class</th><th>Subject</th><th>Duty</th><th></th></tr></thead><tbody>
         @for (p of d.periods; track p.classCode + p.period) {
-          <tr><td>P{{ p.period + 1 }}</td><td class="mono">{{ times[p.period] }}</td><td><b>{{ p.classCode | cls }}</b></td><td>{{ p.subject }}</td>
+          <tr><td>P{{ p.period + 1 }}</td><td class="mono">{{ time(p.period) }}</td><td><b>{{ p.classCode | cls }}</b></td><td>{{ p.subject }}</td>
             <td><span class="pill" [class.warn]="p.substitute">{{ p.substitute ? 'Substitute' : 'Regular' }}</span></td><td><button class="btn sm" (click)="openAtt(p.classCode)">Attendance</button></td></tr> }</tbody></table></div> }
     </section>
   </div>
@@ -26,7 +26,7 @@ import { longToday } from '../../core/dates';
 })
 export class TodayComponent implements OnInit {
   private api = inject(Api); private router = inject(Router);
-  d = signal<any>(null); error = signal(''); today = longToday(); times = PERIODS;
+  d = signal<any>(null); error = signal(''); today = longToday(); time = periodTime;
   ngOnInit() { this.api.get('/portal/teacher').subscribe({ next: r => this.d.set(r), error: e => this.error.set(errText(e)) }); }
   openAtt(code: string) { this.router.navigate(['/attendance'], { queryParams: { classCode: code } }); }
 }
