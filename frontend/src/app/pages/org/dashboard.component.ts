@@ -103,7 +103,7 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
     @if (st(); as s) {
     <div class="grid2">
       <section class="panel"><div class="ph"><h2>Students absent today</h2><span class="muted" style="font-size:13px">{{ s.attendance.today.absent }} of {{ s.attendance.today.students }} · tap a colour for names</span></div>
-        <app-absence-pie title="Absent, class by class" [slices]="studentSlices()" [centerText]="s.attendance.today.absent + ''" sub="absent today" emptyText="Nobody absent" (pick)="openClass($event)"/>
+        <app-absence-pie title="Absent, class by class" [legend]="false" [slices]="studentSlices()" [centerText]="s.attendance.today.absent + ''" sub="absent today" emptyText="Nobody absent" (pick)="openClass($event)"/>
       </section>
       @if (s.teachers) {
       <section class="panel"><div class="ph"><h2>Teachers absent today</h2><span class="muted" style="font-size:13px">{{ s.teachers.onLeaveToday }} of {{ s.teachers.total }} · tap a colour for details</span></div>

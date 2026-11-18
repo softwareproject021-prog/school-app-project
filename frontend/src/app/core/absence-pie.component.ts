@@ -23,7 +23,7 @@ export interface PieSlice { key: string; label: string; value: number; color: st
       <text x="100" y="128" text-anchor="middle" class="sm">{{ arcs().length ? sub() : emptyText() }}</text>
     </svg>
     <figcaption><b>{{ title() }}</b>
-      <span class="lg">@for (s of slices(); track s.key) { <button type="button" (click)="pick.emit(s.key)" [style.--c]="s.color"><i></i>{{ s.label }} <span class="n">{{ s.value }}</span></button> }</span>
+      @if (legend()) { <span class="lg">@for (s of slices(); track s.key) { <button type="button" (click)="pick.emit(s.key)" [style.--c]="s.color"><i></i>{{ s.label }} <span class="n">{{ s.value }}</span></button> }</span> }
     </figcaption>
   </figure>`,
   styles: [`.pie{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px}
@@ -34,11 +34,11 @@ export interface PieSlice { key: string; label: string; value: number; color: st
     .lg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
     .lg button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:4px 11px;border-radius:99px;cursor:pointer;font-size:13px}
     .lg button:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--surface))}
-    .sl{pointer-events:none;fill:#fff;paint-order:stroke;stroke:rgb(0 0 0/.35);stroke-width:2.2px;stroke-linejoin:round}.sc{font:700 10px var(--body,sans-serif)}.sn{font:800 14px var(--mono,monospace)}
+    .sl{pointer-events:none;fill:#fff;paint-order:stroke;stroke:rgb(0 0 0/.35);stroke-width:2.2px;stroke-linejoin:round}.sc{font:500 10px var(--body,sans-serif)}.sn{font:500 14px var(--mono,monospace)}
     .lg i{width:10px;height:10px;border-radius:99px;background:var(--c)}.lg .n{font-family:var(--mono,monospace);font-weight:700}`],
 })
 export class AbsencePieComponent {
-  slices = input.required<PieSlice[]>(); title = input(''); centerText = input(''); sub = input(''); emptyText = input('All present');
+  slices = input.required<PieSlice[]>(); title = input(''); centerText = input(''); sub = input(''); emptyText = input('All present'); legend = input(true);
   pick = output<string>();
   readonly circ = 2 * Math.PI * 74;
   arcs = computed(() => {
