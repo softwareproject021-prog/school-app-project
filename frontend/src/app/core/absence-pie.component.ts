@@ -1,6 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
 
-export interface PieSlice { key: string; label: string; value: number; color: string; }
+export interface PieSlice { key: string; label: string; value: number; color: string; /** Short text printed on the slice, e.g. the class code. */ short?: string; }
 
 /** A large ring chart. Click a slice or a legend chip to pick it. With no slices it draws a full green ring and the "all clear" text. */
 @Component({
@@ -14,6 +14,11 @@ export interface PieSlice { key: string; label: string; value: number; color: st
         <circle class="seg" cx="100" cy="100" r="74" fill="none" [attr.stroke]="a.color" stroke-width="34" [attr.stroke-dasharray]="a.len + ' ' + (circ - a.len)" [attr.stroke-dashoffset]="-a.start"
           transform="rotate(-90 100 100)" tabindex="0" role="button" [attr.aria-label]="a.label + ': ' + a.value" (click)="pick.emit(a.key)" (keydown.enter)="pick.emit(a.key)" (keydown.space)="pick.emit(a.key)"/>
       }
+      @for (a of arcs(); track a.key) { @if (a.frac >= 0.03) {
+        <text class="sl" [attr.x]="a.x" [attr.y]="a.y" text-anchor="middle">
+          @if (a.short && a.frac >= 0.05) { <tspan [attr.x]="a.x" dy="-1.5" class="sc">{{ a.short }}</tspan><tspan [attr.x]="a.x" dy="12" class="sn">{{ a.value }}</tspan> }
+          @else { <tspan [attr.x]="a.x" dy="3.5" class="sn">{{ a.value }}</tspan> }
+        </text> } }
       <text x="100" y="104" text-anchor="middle" class="big">{{ arcs().length ? centerText() : '✓' }}</text>
       <text x="100" y="128" text-anchor="middle" class="sm">{{ arcs().length ? sub() : emptyText() }}</text>
     </svg>
@@ -29,6 +34,7 @@ export interface PieSlice { key: string; label: string; value: number; color: st
     .lg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
     .lg button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:4px 11px;border-radius:99px;cursor:pointer;font-size:13px}
     .lg button:hover{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--surface))}
+    .sl{pointer-events:none;fill:#fff;paint-order:stroke;stroke:rgb(0 0 0/.35);stroke-width:2.2px;stroke-linejoin:round}.sc{font:700 10px var(--body,sans-serif)}.sn{font:800 14px var(--mono,monospace)}
     .lg i{width:10px;height:10px;border-radius:99px;background:var(--c)}.lg .n{font-family:var(--mono,monospace);font-weight:700}`],
 })
 export class AbsencePieComponent {
@@ -39,6 +45,8 @@ export class AbsencePieComponent {
     const list = this.slices().filter(s => s.value > 0); const total = list.reduce((a, s) => a + s.value, 0);
     if (!total) return [];
     const gap = list.length > 1 ? 3 : 0; let acc = 0;
-    return list.map(s => { const full = s.value / total * this.circ; const a = { ...s, start: acc + gap / 2, len: Math.max(1, full - gap) }; acc += full; return a; });
+    return list.map(s => {
+      const full = s.value / total * this.circ; const a = { ...s, start: acc + gap / 2, len: Math.max(1, full - gap), frac: s.value / total, x: 0, y: 0 };
+      const th = (acc + full / 2) / this.circ * 2 * Math.PI - Math.PI / 2; a.x = +(100 + 74 * Math.cos(th)).toFixed(1); a.y = +(100 + 74 * Math.sin(th)).toFixed(1); acc += full; return a; });
   });
 }
