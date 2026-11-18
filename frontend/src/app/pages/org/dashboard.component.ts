@@ -154,7 +154,12 @@ export class DashboardComponent implements OnInit {
   st = signal<any>(null); pop = signal<{ title: string; sub: string; color: string; rows: { name: string; ini: string; note?: string }[] } | null>(null);
   private readonly PAL = ['#1d4ed8', '#e11d48', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#ea580c', '#65a30d', '#4f46e5', '#0d9488', '#b45309'];
   private ini = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-  private colorOfClass(code: string) { const i = this.st().attendance.classes.findIndex((c: any) => c.code === code); return this.PAL[Math.max(i, 0) % this.PAL.length]; }
+  /** One colour per class, and no two classes share one: the 12 hand-picked colours first, then spread-out hues for any more classes. */
+  private colorOfClass(code: string) {
+    const i = Math.max(this.st().attendance.classes.findIndex((c: any) => c.code === code), 0);
+    if (i < this.PAL.length) return this.PAL[i];
+    const n = i - this.PAL.length + 1; return 'hsl(' + Math.round((n * 137.508 + 20) % 360) + ' ' + (62 + (n % 3) * 8) + '% ' + (44 + (n % 2) * 8) + '%)';
+  }
   private label(code: string) { return 'Class ' + code.replace(/^(\d+)(\w)$/, '$1-$2'); }
   studentSlices(): PieSlice[] { return this.st().attendance.classes.filter((c: any) => c.submitted && c.absentToday > 0).map((c: any) => ({ key: c.code, label: this.label(c.code), value: c.absentToday, color: this.colorOfClass(c.code) })); }
   teacherSlices(): PieSlice[] { return this.st().teachers.teachers.filter((t: any) => t.onLeaveToday).map((t: any, i: number) => ({ key: String(t.id), label: t.name, value: 1, color: this.PAL[i % this.PAL.length] })); }
