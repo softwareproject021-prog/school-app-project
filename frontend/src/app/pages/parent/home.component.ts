@@ -15,6 +15,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
       <div class="kpi"><div class="l">Attendance (30 days)</div><div class="v">{{ d.attendancePct }}%</div></div>
       <div class="kpi" [class.bad]="d.feeDue>0" [class.good]="d.feeDue===0"><div class="l">Fee due</div><div class="v">{{ d.feeDue ? (d.feeDue | inr) : 'Nil' }}</div></div>
       <div class="kpi"><div class="l">UT-1 average</div><div class="v">{{ avg(d) }}/50</div></div></div>
+    @if (d.onlineLink) { <div class="note"><b>Online class</b>@if (d.onlineTime) { · {{ d.onlineTime }} } <a class="btn sm acc" [href]="d.onlineLink" target="_blank" rel="noopener noreferrer">Join online class</a></div> }
     @if (holiday(); as h) { <div class="note"><b>{{ h.status === 'ONGOING' ? 'Holiday on now' : 'Holiday' }}: {{ h.title }}</b> · {{ h.from }}{{ h.to !== h.from ? ' to ' + h.to : '' }}. School reopens {{ h.reopens }}. <a class="btn sm" routerLink="/holidays">All holidays</a></div> }
     @if (d.feeDue > 0) { <div class="note">{{ d.feeDue | inr }} school fee is pending. Pay at the school office. <a class="btn sm acc" routerLink="/child-fees">View fees</a></div> }
     <div class="grid2">

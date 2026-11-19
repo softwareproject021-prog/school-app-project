@@ -1,16 +1,28 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Api, errText } from '../../core/api.service';
 import { Toast } from '../../core/toast.service';
-import { InrPipe } from '../../core/format';
+import { ClassPipe, InrPipe } from '../../core/format';
 
 @Component({
-  selector: 'app-child-fees', standalone: true, imports: [InrPipe],
+  selector: 'app-child-fees', standalone: true, imports: [InrPipe, ClassPipe],
+  styles: [`.stm td{white-space:normal}.stm td.n{white-space:nowrap;width:1%;padding-left:16px}`],
   template: `
   @if (d(); as d) {
   <div class="head"><div><h1>Fees</h1><p class="sub">{{ d.studentName }} · Academic year 2026–27</p></div></div>
   <div class="stack">
-    <div class="kpis"><div class="kpi"><div class="l">Class fee{{ d.classCode ? ' · ' + d.classCode : '' }}</div><div class="v">{{ d.classFee | inr }}</div></div>@if (d.busFee) { <div class="kpi"><div class="l">Bus fee{{ d.busCode ? ' · ' + d.busCode : '' }}</div><div class="v">{{ d.busFee | inr }}</div></div> }@if (d.feeDiscount) { <div class="kpi good"><div class="l">Discount</div><div class="v">−{{ d.feeDiscount | inr }}</div>@if (d.discountReason) { <div class="muted" style="font-size:12px">{{ d.discountReason }}</div> }</div><div class="kpi"><div class="l">Fee to pay</div><div class="v">{{ d.feeNet | inr }}</div></div> }<div class="kpi good"><div class="l">Paid</div><div class="v">{{ d.feePaid | inr }}</div></div>
+    <div class="kpis"><div class="kpi"><div class="l">Fee payable</div><div class="v">{{ d.feeNet | inr }}</div></div><div class="kpi good"><div class="l">Paid</div><div class="v">{{ d.feePaid | inr }}</div></div>
       <div class="kpi" [class.bad]="d.feeDue>0" [class.good]="d.feeDue===0"><div class="l">Due</div><div class="v">{{ d.feeDue | inr }}</div></div></div>
+    <section class="panel"><div class="ph"><h2>Fee statement</h2><span class="muted" style="font-size:12px">how your fee is worked out</span></div>
+      <div class="tw"><table class="stm"><tbody>
+        <tr><td>Tuition fee<span class="muted"> · Class {{ d.classCode | cls }}</span></td><td class="n">{{ d.classFee | inr }}</td></tr>
+        @if (d.busFee) { <tr><td>Bus fee<span class="muted">{{ d.busCode ? ' · ' + d.busCode : '' }}</span></td><td class="n">{{ d.busFee | inr }}</td></tr> }
+        @if (d.hostelFee) { <tr><td>Hostel fee<span class="muted">{{ d.hostelRoom ? ' · Room ' + d.hostelRoom : '' }}</span></td><td class="n">{{ d.hostelFee | inr }}</td></tr> }
+        <tr><td><b>Total fee</b></td><td class="n"><b>{{ d.feeTotal | inr }}</b></td></tr>
+        @if (d.feeDiscount) { <tr><td>Discount given by the school<span class="muted">{{ d.discountReason ? ' · ' + d.discountReason : '' }}</span></td><td class="n" style="color:var(--good)">−{{ d.feeDiscount | inr }}</td></tr> }
+        <tr><td><b>Fee payable</b><span class="muted"> (total fee{{ d.feeDiscount ? ' − discount' : '' }})</span></td><td class="n"><b>{{ d.feeNet | inr }}</b></td></tr>
+        <tr><td>Paid so far<span class="muted"> · see receipts below</span></td><td class="n" style="color:var(--good)">−{{ d.feePaid | inr }}</td></tr>
+        <tr><td><b>Balance due</b></td><td class="n"><b [style.color]="d.feeDue > 0 ? 'var(--bad)' : 'var(--good)'">{{ d.feeDue | inr }}</b></td></tr>
+      </tbody></table></div></section>
     <section class="panel">
       @if (d.feeDue > 0) { <div class="ph"><h2>{{ d.feeDue | inr }} pending</h2></div><p class="muted" style="margin:0">Fees are paid at the school office. Your pay slip appears under Receipts as soon as the school records the payment.</p> }
       @else { <div class="empty">All fees paid. Thank you.</div> }
