@@ -20,19 +20,27 @@ import { ClassPipe, InrPipe } from '../../core/format';
         <select [(ngModel)]="status" (change)="load()" aria-label="Fee status"><option value="due">Fully due</option><option value="partial">Partly paid</option><option value="paid">Paid</option><option value="all">All</option></select></div>
       @if (d.rows.length === 0) { <div class="empty">No students match.</div> } @else {
       <p class="muted" style="margin:0 0 8px">{{ d.rows.length }} students</p>
-      <div class="tw"><table><thead><tr><th>Class</th><th>Name</th><th>Parent phone</th><th class="n">Annual fee</th><th class="n">Discount</th><th class="n">Paid</th><th class="n">Due</th><th>Status</th><th></th></tr></thead><tbody>
+      <div class="tw"><table><thead><tr><th>Class</th><th>Name</th><th>Parent phone</th><th class="n">Annual fee</th><th class="n">Discount</th><th class="n">Fee payable</th><th class="n">Paid</th><th class="n">Due</th><th>Status</th><th></th></tr></thead><tbody>
         @for (r of d.rows; track r.studentId) {
-          <tr><td>{{ r.classCode | cls }}</td><td>{{ r.name }}</td><td class="mono">{{ r.phone }}</td><td class="n">{{ r.feeTotal | inr }}</td>
-            <td class="n">{{ r.feeDiscount ? (r.feeDiscount | inr) : '—' }}@if (r.discountReason) { <div class="muted" style="font-size:12px">{{ r.discountReason }}</div> }</td><td class="n">{{ r.feePaid | inr }}</td><td class="n">{{ r.feeDue | inr }}</td>
+          <tr><td>{{ r.classCode | cls }}</td><td>{{ r.name }}</td><td class="mono">{{ r.phone }}</td><td class="n">{{ r.feeTotal | inr }}<div class="muted brk">Tuition {{ r.classFee | inr }}@if (r.busFee) { + Bus {{ r.busFee | inr }} }@if (r.hostelFee) { + Hostel {{ r.hostelFee | inr }} }</div></td>
+            <td class="n">{{ r.feeDiscount ? ('−' + (r.feeDiscount | inr)) : '—' }}@if (r.feeDiscount) { <div class="muted brk">{{ pctOf(r) }}% · {{ r.discountReason }}@if (r.discountBy) { · by {{ r.discountBy }} } </div> }</td><td class="n"><b>{{ r.feeNet | inr }}</b></td><td class="n">{{ r.feePaid | inr }}</td><td class="n">{{ r.feeDue | inr }}</td>
             <td><span class="pill" [class.good]="r.feeDue===0" [class.warn]="r.feePaid>0 && r.feeDue>0" [class.bad]="r.feePaid===0">{{ r.feeDue === 0 ? 'Paid' : r.feePaid ? 'Partial' : 'Due' }}</span></td>
-            <td><button class="btn sm pri" (click)="openReceipt(r)" [attr.aria-label]="'Receive payment from the parent of ' + r.name">Receive payment</button> <button class="btn sm" (click)="edit(r)">{{ r.feeDiscount ? 'Change discount' : 'Give discount' }}</button></td></tr>
-          @if (ed()?.studentId === r.studentId) { <tr><td colspan="9" style="background:var(--sunk)">
+            <td><button class="btn sm pri" (click)="openReceipt(r)" [attr.aria-label]="'Receive payment from the parent of ' + r.name">Receive payment</button> <button class="btn sm" (click)="edit(r)">{{ r.feeDiscount ? 'Change discount' : 'Give discount' }}</button> <button class="btn sm" (click)="openHostel(r)">{{ r.hostelFee ? 'Hostel: ' + (r.hostelFee | inr) : 'Hostel fee' }}</button></td></tr>
+          @if (hs()?.studentId === r.studentId) { <tr><td colspan="10" style="background:var(--sunk)">
+            <form class="bar" style="margin:0" (ngSubmit)="saveHostel()">
+              <b>Hostel for {{ r.name }}</b>
+              <label>Hostel fee for the year (₹)<input type="number" name="hfee" min="0" [(ngModel)]="hAmt"></label>
+              <label>Room (optional)<input type="text" name="hroom" maxlength="40" [(ngModel)]="hRoom" placeholder="e.g. B-12"></label>
+              <span class="muted">New annual fee: <b>{{ r.classFee + r.busFee + (hAmt || 0) | inr }}</b> (set 0 if the student is not a boarder)</span>
+              <button class="btn pri" type="submit">Save</button><button class="btn" type="button" (click)="hs.set(null)">Cancel</button>
+            </form></td></tr> }
+          @if (ed()?.studentId === r.studentId) { <tr><td colspan="10" style="background:var(--sunk)">
             <form class="bar" style="margin:0" (ngSubmit)="saveDiscount()">
               <b>Discount for {{ r.name }}</b>
               <label>Amount (₹)<input type="number" name="amt" min="0" [max]="r.feeTotal" [(ngModel)]="amt" (ngModelChange)="pctFrom()"></label>
               <label>or percent<input type="number" name="pct" min="0" max="100" [(ngModel)]="pct" (ngModelChange)="amtFrom(r.feeTotal)"></label>
               <label>Reason<input type="text" name="why" maxlength="120" [(ngModel)]="why" placeholder="Sibling, scholarship, staff child…"></label>
-              <span class="muted">Fee after discount: <b>{{ r.feeTotal - (amt || 0) | inr }}</b></span>
+              <span class="eq"><span>Fee <b>{{ r.feeTotal | inr }}</b></span><i>−</i><span>Discount <b>{{ amt || 0 | inr }}</b></span><i>=</i><span class="pay">Parent pays <b>{{ r.feeTotal - (amt || 0) | inr }}</b></span><i>·</i><span>Already paid <b>{{ r.feePaid | inr }}</b></span><i>·</i><span>Still due <b>{{ max0(r.feeTotal - (amt || 0) - r.feePaid) | inr }}</b></span></span>
               <button class="btn pri" type="submit">Save</button><button class="btn" type="button" (click)="ed.set(null)">Cancel</button>
               @if (r.feeDiscount) { <button class="btn danger" type="button" (click)="amt = 0; saveDiscount()">Remove discount</button> }
             </form></td></tr> } }
@@ -46,6 +54,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
       <div class="kpi"><div class="l">Of all fees</div><div class="v">{{ x.percentOfFees }}%</div></div>
       <div class="kpi good"><div class="l">Fee after discount</div><div class="v">{{ x.net | inr }}</div></div>
     </div>
+    <div class="note">A discount <b>reduces what the parent has to pay</b>: Fee − Discount = Fee payable. Only the principal can give one, a reason is required, the parent is messaged, and every change is recorded in “Recent changes” below. A discount cannot be more than the fee, or leave less than the parent has already paid.</div>
     <section class="panel">
       <div class="ph"><h2>Students with a discount</h2></div>
       <div class="bar"><input type="search" [(ngModel)]="dq" (ngModelChange)="typedD()" placeholder="Search student…" aria-label="Search student">
@@ -62,7 +71,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
               <label>Amount (₹)<input type="number" name="amt2" min="0" [max]="r.feeTotal" [(ngModel)]="amt" (ngModelChange)="pctFrom()"></label>
               <label>or percent<input type="number" name="pct2" min="0" max="100" [(ngModel)]="pct" (ngModelChange)="amtFrom(r.feeTotal)"></label>
               <label>Reason<input type="text" name="why2" maxlength="120" [(ngModel)]="why"></label>
-              <span class="muted">Fee after discount: <b>{{ r.feeTotal - (amt || 0) | inr }}</b></span>
+              <span class="eq"><span>Fee <b>{{ r.feeTotal | inr }}</b></span><i>−</i><span>Discount <b>{{ amt || 0 | inr }}</b></span><i>=</i><span class="pay">Parent pays <b>{{ r.feeTotal - (amt || 0) | inr }}</b></span><i>·</i><span>Already paid <b>{{ r.feePaid | inr }}</b></span><i>·</i><span>Still due <b>{{ max0(r.feeTotal - (amt || 0) - r.feePaid) | inr }}</b></span></span>
               <button class="btn pri" type="submit">Save</button><button class="btn" type="button" (click)="ed.set(null)">Cancel</button>
               <button class="btn danger" type="button" (click)="amt = 0; saveDiscount()">Remove discount</button>
             </form></td></tr> } }
@@ -138,7 +147,8 @@ import { ClassPipe, InrPipe } from '../../core/format';
           @if (p.recordedBy) { @if (voidId() === p.id) { <button class="btn sm danger" type="button" (click)="voidReceipt(p)">Yes, cancel</button><button class="btn sm" type="button" (click)="voidId.set(null)">No</button> } @else { <button class="btn sm" type="button" (click)="voidId.set(p.id)">Cancel receipt</button> } }</li> }</ul></details> }
     </div></div>
   }`,
-  styles: [`.ov{position:fixed;inset:0;z-index:60;background:rgb(10 20 45/.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:fade .15s}
+  styles: [`.brk{font-size:11px;font-weight:600;white-space:normal;min-width:150px;max-width:210px;margin-left:auto;line-height:1.3}
+    .eq{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:6px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:13px}.eq i{font-style:normal;color:var(--muted)}.eq .pay{background:var(--good-soft);color:var(--good);padding:2px 9px;border-radius:99px}.ov{position:fixed;inset:0;z-index:60;background:rgb(10 20 45/.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:fade .15s}
     .dlg{width:min(520px,100%);max-height:92vh;overflow:auto;background:var(--surface);border-radius:20px;box-shadow:0 24px 60px rgb(10 20 45/.4);animation:rise .18s}
     .dlg header{display:flex;gap:12px;align-items:center;padding:16px 18px;background:var(--grad);color:#fff;position:sticky;top:0}
     .dlg header h2{margin:0;font-size:18px;color:#fff}.dlg header p{margin:2px 0 0;opacity:.85;font-size:13px}
@@ -174,6 +184,14 @@ export class FeesComponent implements OnInit {
   closeReceipt() { this.rc.set(null); this.rErr.set(''); this.voidId.set(null); }
   rNo = ''; rAmt = 0; rMode = 'CASH'; rDate = ''; rNote = ''; today = new Date().toISOString().slice(0, 10);
   ed = signal<any>(null); amt = 0; pct = 0; why = '';
+  hs = signal<any>(null); hAmt = 0; hRoom = '';
+  max0 = (n: number) => Math.max(0, n);
+  pctOf = (r: any) => r.feeTotal ? Math.round(r.feeDiscount * 1000 / r.feeTotal) / 10 : 0;
+  openHostel(r: any) { this.ed.set(null); this.rc.set(null); this.hs.set(this.hs()?.studentId === r.studentId ? null : r); this.hAmt = r.hostelFee || 0; this.hRoom = r.hostelRoom || ''; }
+  saveHostel() {
+    const r = this.hs(); if (!r) return;
+    this.api.put('/fees/hostel/' + r.studentId, { fee: Number(this.hAmt) || 0, room: this.hRoom }).subscribe({ next: () => { this.toast.show(Number(this.hAmt) ? 'Hostel fee saved' : 'Hostel fee removed'); this.hs.set(null); this.load(); }, error: e => this.toast.show(errText(e), 6000) });
+  }
   d = signal<any>(null); classes = signal<any[]>([]); q = ''; classCode = ''; status = 'due'; private t: any;
   ngOnInit() { this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); this.load(); this.loadD(); }
   go(t: 'reg' | 'disc' | 'bulk' | 'plan') { this.tab.set(t); this.ed.set(null); this.bResult.set(null); this.bConfirm.set(false); if (t === 'disc') this.loadD(); else if (t === 'reg') this.load(); else if (t === 'plan') this.loadPlan(); }
@@ -181,7 +199,7 @@ export class FeesComponent implements OnInit {
   loadD() { this.api.get('/fees/discounts', { q: this.dq, classCode: this.dclass }).subscribe(r => this.dd.set(r)); }
   typed() { clearTimeout(this.t); this.t = setTimeout(() => this.load(), 250); }
   load() { this.api.get('/fees', { q: this.q, classCode: this.classCode, status: this.status }).subscribe(r => this.d.set(r)); }
-  edit(r: any) { this.rc.set(null); this.ed.set(this.ed()?.studentId === r.studentId ? null : r); this.amt = r.feeDiscount || 0; this.pct = r.feeTotal ? Math.round(this.amt * 1000 / r.feeTotal) / 10 : 0; this.why = r.discountReason || ''; }
+  edit(r: any) { this.rc.set(null); this.hs.set(null); this.ed.set(this.ed()?.studentId === r.studentId ? null : r); this.amt = r.feeDiscount || 0; this.pct = r.feeTotal ? Math.round(this.amt * 1000 / r.feeTotal) / 10 : 0; this.why = r.discountReason || ''; }
   openReceipt(r: any) {
     this.ed.set(null); this.rErr.set(''); this.voidId.set(null);
     this.rc.set(r); this.rNo = ''; this.rAmt = r.feeDue; this.rMode = 'CASH'; this.rDate = this.today; this.rNote = '';

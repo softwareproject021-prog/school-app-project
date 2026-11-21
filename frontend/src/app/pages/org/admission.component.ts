@@ -8,13 +8,14 @@ import { ClassPipe, InrPipe } from '../../core/format';
 @Component({
   selector: 'app-admission', standalone: true, imports: [FormsModule, RouterLink, ClassPipe, InrPipe],
   template: `
-  <div class="head"><div><h1>New admission</h1><p class="sub">Enrol a student, set the tuition and transport fee, and take the first payment if the parent pays at the office.</p></div></div>
+  <div class="head"><div><h1>New admission</h1><p class="sub">Enrol a student, set the tuition, transport and hostel fee, and take the first payment if the parent pays at the office.</p></div></div>
   <div class="stack">
     @if (done(); as r) {
       <section class="panel"><div class="ph"><h2>Admission complete</h2><span class="pill good">{{ r.admissionNo }}</span></div>
         <div class="kpis"><div class="kpi"><div class="l">Class · Roll</div><div class="v">{{ r.classCode | cls }} · {{ r.roll }}</div></div>
           <div class="kpi"><div class="l">Tuition fee</div><div class="v">{{ r.tuitionFee | inr }}</div></div>
           <div class="kpi"><div class="l">Transport fee</div><div class="v">{{ r.transportFee | inr }}</div></div>
+          @if (r.hostelFee) { <div class="kpi"><div class="l">Hostel fee</div><div class="v">{{ r.hostelFee | inr }}</div></div> }
           @if (r.discount) { <div class="kpi good"><div class="l">Discount</div><div class="v">−{{ r.discount | inr }}</div></div> }
           <div class="kpi good"><div class="l">Paid</div><div class="v">{{ r.feePaid | inr }}</div></div>
           <div class="kpi" [class.bad]="r.feeDue>0"><div class="l">Due</div><div class="v">{{ r.feeDue | inr }}</div></div></div>
@@ -41,10 +42,13 @@ import { ClassPipe, InrPipe } from '../../core/format';
         <div class="form">
           <label>Tuition fee for the year (₹)<input name="tuition" type="number" min="0" [(ngModel)]="f.tuitionFee"></label>
           <label>Transport<select name="bus" [(ngModel)]="f.busRouteId"><option [ngValue]="null">No school bus</option>@for (b of buses(); track b.id) { <option [ngValue]="b.id">{{ b.code }} · {{ b.name }} ({{ b.fee | inr }})</option> }</select></label>
+          <label>Hostel boarder?<select name="boarder" [(ngModel)]="f.boarder"><option [ngValue]="false">No, day scholar</option><option [ngValue]="true">Yes, stays in the hostel</option></select></label>
+          @if (f.boarder) { <label>Hostel fee for the year (₹)<input name="hostelFee" type="number" min="0" [(ngModel)]="f.hostelFee"></label>
+            <label>Hostel room (optional)<input name="hostelRoom" [(ngModel)]="f.hostelRoom" maxlength="40" placeholder="e.g. B-12"></label> }
           <label>Discount (₹)<input name="discount" type="number" min="0" [(ngModel)]="f.discount"></label>
           @if (f.discount > 0) { <label>Discount reason<input name="why" [(ngModel)]="f.discountReason" maxlength="120" placeholder="Sibling, scholarship…" required></label> }
         </div>
-        <div class="kpis" style="margin-top:12px"><div class="kpi"><div class="l">Tuition</div><div class="v">{{ f.tuitionFee || 0 | inr }}</div></div><div class="kpi"><div class="l">Transport</div><div class="v">{{ transport() | inr }}</div></div>
+        <div class="kpis" style="margin-top:12px"><div class="kpi"><div class="l">Tuition</div><div class="v">{{ f.tuitionFee || 0 | inr }}</div></div><div class="kpi"><div class="l">Transport</div><div class="v">{{ transport() | inr }}</div></div>@if (f.boarder) { <div class="kpi"><div class="l">Hostel</div><div class="v">{{ f.hostelFee || 0 | inr }}</div></div> }
           <div class="kpi good"><div class="l">Discount</div><div class="v">−{{ f.discount || 0 | inr }}</div></div><div class="kpi warn"><div class="l">Total to pay</div><div class="v">{{ total() | inr }}</div></div></div>
       </section>
       <section class="panel"><div class="ph"><h2>First payment (optional)</h2></div>
@@ -65,18 +69,20 @@ export class AdmissionComponent implements OnInit {
   today = new Date().toISOString().slice(0, 10);
   f: any = this.blank();
   transport = () => this.busFee();
-  blank() { return { name: '', classCode: '', dob: '', gender: '', parentName: '', phone: '', address: '', tuitionFee: 0, busRouteId: null, discount: 0, discountReason: '', initialPayment: 0, receiptNo: '', paymentMode: 'CASH' }; }
+  blank() { return { name: '', classCode: '', dob: '', gender: '', parentName: '', phone: '', address: '', tuitionFee: 0, busRouteId: null, discount: 0, discountReason: '', initialPayment: 0, receiptNo: '', paymentMode: 'CASH', boarder: false, hostelFee: 0, hostelRoom: '' }; }
   ngOnInit() { this.api.get<any>('/fees/structure').subscribe(s => { this.classes.set(s.classes); this.buses.set(s.buses ?? []); }); }
   pickClass() { const c = this.classes().find(x => x.code === this.f.classCode); this.f.tuitionFee = c?.fee || 0; }
   busFee() { return this.buses().find(b => b.id === this.f.busRouteId)?.fee || 0; }
-  total() { return Math.max(0, (Number(this.f.tuitionFee) || 0) + this.busFee() - (Number(this.f.discount) || 0)); }
+  total() { return Math.max(0, (Number(this.f.tuitionFee) || 0) + this.busFee() + this.hostel() - (Number(this.f.discount) || 0)); }
+  hostel() { return this.f.boarder ? Number(this.f.hostelFee) || 0 : 0; }
   again() { this.done.set(null); this.f = this.blank(); }
   submit() {
     this.error.set(''); this.busy.set(true);
     const f = this.f;
     const body = { name: f.name, classCode: f.classCode, parentName: f.parentName, phone: f.phone, address: f.address || null, gender: f.gender || null, dob: f.dob || null,
       busRouteId: f.busRouteId, tuitionFee: Number(f.tuitionFee) || 0, discount: Number(f.discount) || 0, discountReason: f.discountReason || null,
-      initialPayment: Number(f.initialPayment) || 0, receiptNo: f.receiptNo || null, paymentMode: f.paymentMode };
+      initialPayment: Number(f.initialPayment) || 0, receiptNo: f.receiptNo || null, paymentMode: f.paymentMode,
+      hostelFee: this.hostel(), hostelRoom: f.boarder ? f.hostelRoom || null : null };
     this.api.post<any>('/school/admissions', body).subscribe({ next: r => { this.busy.set(false); this.done.set(r); }, error: e => { this.busy.set(false); this.error.set(errText(e)); } });
   }
 }

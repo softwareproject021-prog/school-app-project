@@ -10,21 +10,22 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
 @Component({
   selector: 'app-dashboard', standalone: true, imports: [RouterLink, InrPipe, ClassPipe, AbsencePieComponent],
   styles: [`
-    .hero{border-radius:16px;background:var(--grad);color:#fff;padding:22px 22px 18px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end}
-    .hero h1{margin:0;font-size:26px;line-height:1.2;color:#fff}.hero p{margin:4px 0 0;opacity:.85}
+    .hero{border-radius:16px;background:var(--grad);color:#fff;padding:16px 20px 14px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:flex-end}
+    .hero h1{margin:0;font-size:21px;line-height:1.2;color:#fff;font-weight:800}.hero p{margin:3px 0 0;opacity:.9;font-size:13px;font-weight:700}
     .hero .acts{display:flex;flex-wrap:wrap;gap:8px}
-    .hero .acts a{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:99px;padding:8px 14px;font-weight:600;font-size:14px;text-decoration:none}
+    .hero .acts a{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:99px;padding:6px 12px;font-weight:700;font-size:13px;white-space:nowrap;text-decoration:none}
     .hero .acts a:hover{background:rgba(255,255,255,.28)}
-    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-    .tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit}
-    .tile .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;flex:none;background:var(--sunk)}
-    .tile .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-    .tile .v{font:700 22px/1.15 var(--mono);font-variant-numeric:tabular-nums}
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px}
+    .tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center;text-decoration:none;color:inherit;min-width:0}
+    .tile > div{min-width:0}
+    .tile .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex:none;background:var(--sunk)}
+    .tile .l{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tile .v{font:800 19px/1.15 var(--mono);font-variant-numeric:tabular-nums}
     .tile.good .ic{background:var(--good-soft)}.tile.bad .ic{background:var(--bad-soft)}.tile.warn .ic{background:var(--warn-soft)}
     .ring{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-    .ring svg{width:130px;height:130px;flex:none}
-    .ring .big{font:700 28px var(--mono)}
-    .legend{display:grid;gap:6px;font-size:14px}.legend b{font-family:var(--mono)}
+    .ring svg{width:112px;height:112px;flex:none}
+    .ring .big{font:800 24px var(--mono)}
+    .legend{display:grid;gap:4px;font-size:13px;font-weight:700}.legend > div{white-space:nowrap}.legend b{font-family:var(--mono);font-weight:800}
     .dotk{display:inline-block;width:10px;height:10px;border-radius:99px;margin-right:6px}
     .trend{display:flex;align-items:flex-end;gap:8px;height:120px;margin-top:6px}
     .trend .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
@@ -63,7 +64,7 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
       <a class="tile good" routerLink="/attendance"><span class="ic" aria-hidden="true">✅</span><div><div class="l">Present today</div><div class="v">{{ d.present }}</div></div></a>
       <a class="tile bad" routerLink="/attendance"><span class="ic" aria-hidden="true">🚫</span><div><div class="l">Absent today</div><div class="v">{{ d.absent }}</div></div></a>
       <a class="tile" routerLink="/transport"><span class="ic" aria-hidden="true">🚌</span><div><div class="l">Buses</div><div class="v">{{ d.buses }}</div></div></a>
-      <a class="tile" routerLink="/admission"><span class="ic" aria-hidden="true">📝</span><div><div class="l">Admissions this month</div><div class="v">{{ d.admissionsThisMonth }}</div></div></a>
+      <a class="tile" routerLink="/admission"><span class="ic" aria-hidden="true">📝</span><div><div class="l">New admissions</div><div class="v">{{ d.admissionsThisMonth }}</div></div></a>
     </div>
 
     <div class="grid2">

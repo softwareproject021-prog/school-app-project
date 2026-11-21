@@ -19,7 +19,7 @@ import { longToday } from '../../core/dates';
       <div class="tw"><table><thead><tr><th>Period</th><th>Time</th><th>Class</th><th>Subject</th><th>Duty</th><th></th></tr></thead><tbody>
         @for (p of d.periods; track p.classCode + p.period) {
           <tr><td>P{{ p.period + 1 }}</td><td class="mono">{{ time(p.period) }}</td><td><b>{{ p.classCode | cls }}</b></td><td>{{ p.subject }}</td>
-            <td><span class="pill" [class.warn]="p.substitute">{{ p.substitute ? 'Substitute' : 'Regular' }}</span></td><td><button class="btn sm" (click)="openAtt(p.classCode)">Attendance</button></td></tr> }</tbody></table></div> }
+            <td><span class="pill" [class.warn]="p.substitute">{{ p.substitute ? 'Substitute' : 'Regular' }}</span></td><td><button class="btn sm" (click)="openAtt(p.classCode)">Attendance</button> @if (p.onlineLink) { <a class="btn sm acc" [href]="p.onlineLink" target="_blank" rel="noopener noreferrer">Join online class</a> }</td></tr> }</tbody></table></div> }
     </section>
   </div>
   } @else if (error()) { <div class="err">{{ error() }}</div> } @else { <div class="empty"><span class="spin"></span> Loading…</div> }`,

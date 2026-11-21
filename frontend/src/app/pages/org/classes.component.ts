@@ -32,12 +32,16 @@ import { ClassPipe } from '../../core/format';
       <form class="form" (ngSubmit)="saveEdit()">
         <label>Room<input type="text" name="room" [(ngModel)]="ef.room" placeholder="e.g. Room 12"></label>
         <label>Class teacher<select name="classTeacherId" [(ngModel)]="ef.classTeacherId"><option [ngValue]="null">Not assigned</option>@for (t of teachers(); track t.id) { <option [ngValue]="t.id">{{ t.name }} ({{ t.subject }})</option> }</select></label>
+        <label>Online class link<input type="url" name="onlineLink" [(ngModel)]="ef.onlineLink" placeholder="https://meet.google.com/..."></label>
+        <label>Online class timing<input type="text" name="onlineTime" [(ngModel)]="ef.onlineTime" maxlength="60" placeholder="e.g. Mon-Fri 5:00 PM"></label>
+        <p class="muted" style="grid-column:1/-1;margin:0;font-size:12px">Leave the link empty if this class has no online class. Teachers, students and parents see a Join button.</p>
         <div><button class="btn pri" type="submit">Save changes</button> <button class="btn" type="button" (click)="editCode.set(null)">Cancel</button></div></form>
       @if (error()) { <div class="err" style="margin-top:10px">{{ error() }}</div> }
     </section> }
-  <section class="panel"><div class="tw"><table><thead><tr><th>Class</th><th>Room</th><th>Class teacher</th><th class="n">Strength</th><th class="n">Present</th><th class="n">Absent</th><th>Attendance</th><th></th></tr></thead><tbody>
+  <section class="panel"><div class="tw"><table><thead><tr><th>Class</th><th>Room</th><th>Class teacher</th><th>Online class</th><th class="n">Strength</th><th class="n">Present</th><th class="n">Absent</th><th>Attendance</th><th></th></tr></thead><tbody>
     @for (c of rows(); track c.code) {
-      <tr><td><b>{{ c.code | cls }}</b></td><td class="mono">{{ roomOf(c.code) }}</td><td>@if (teacherOf(c.code); as tn) { {{ tn }} } @else { <span class="muted">Not assigned</span> }</td><td class="n">{{ c.strength }}</td><td class="n">{{ c.submitted ? c.present : '–' }}</td><td class="n">{{ c.submitted ? c.absent : '–' }}</td>
+      <tr><td><b>{{ c.code | cls }}</b></td><td class="mono">{{ roomOf(c.code) }}</td><td>@if (teacherOf(c.code); as tn) { {{ tn }} } @else { <span class="muted">Not assigned</span> }</td>
+        <td>@if (online(c.code); as o) { <a class="btn sm acc" [href]="o.onlineLink" target="_blank" rel="noopener noreferrer">Join</a> @if (o.onlineTime) { <span class="muted"> {{ o.onlineTime }}</span> } } @else { <span class="muted">Not set</span> }</td><td class="n">{{ c.strength }}</td><td class="n">{{ c.submitted ? c.present : '–' }}</td><td class="n">{{ c.submitted ? c.absent : '–' }}</td>
         <td><span class="pill" [class.good]="c.submitted" [class.warn]="!c.submitted">{{ c.submitted ? 'Submitted' : 'Pending' }}</span></td>
         <td><button class="btn sm" (click)="go('/students', c.code)">Students</button> <button class="btn sm" (click)="go('/timetable', c.code)">Timetable</button> <button class="btn sm" (click)="edit(c.code)" [attr.aria-label]="'Edit class ' + c.code">Edit</button>
           @if (c.strength === 0) {
@@ -50,20 +54,25 @@ export class ClassesComponent implements OnInit {
   private api = inject(Api); private router = inject(Router); private toast = inject(Toast);
   rows = signal<any[]>([]); rooms = signal<any[]>([]); teachers = signal<any[]>([]); showForm = signal(false); error = signal(''); confirmGen = signal(false);
   editCode = signal<string | null>(null); confirmRemove = signal<string | null>(null);
-  ef: any = { room: '', classTeacherId: null };
+  ef: any = { room: '', classTeacherId: null, onlineLink: '', onlineTime: '' };
+  online = (code: string) => { const c = this.rooms().find(r => r.code === code); return c?.onlineLink ? c : null; };
   grades = Array.from({ length: 12 }, (_, i) => i + 1);
   f: any = { grade: 8, section: 'A', room: '', classTeacherId: null };
   roomOf = (code: string) => this.rooms().find(r => r.code === code)?.room ?? '';
   teacherOf = (code: string) => { const id = this.rooms().find(r => r.code === code)?.classTeacherId; return id == null ? '' : this.teachers().find(t => t.id === id)?.name ?? ''; };
   edit(code: string) {
     const c = this.rooms().find(r => r.code === code);
-    this.ef = { room: c?.room ?? '', classTeacherId: c?.classTeacherId ?? null };
+    this.ef = { room: c?.room ?? '', classTeacherId: c?.classTeacherId ?? null, onlineLink: c?.onlineLink ?? '', onlineTime: c?.onlineTime ?? '' };
     this.error.set(''); this.editCode.set(code); window.scrollTo(0, 0);
   }
   saveEdit() {
     const code = this.editCode(); if (!code) return;
     this.error.set('');
-    this.api.put('/school/classes/' + code, this.ef).subscribe({ next: () => { this.toast.show('Class ' + code + ' updated'); this.editCode.set(null); this.load(); }, error: e => this.error.set(errText(e)) });
+    const link = (this.ef.onlineLink || '').trim();
+    if (link && !/^https?:\/\/\S+$/i.test(link)) { this.error.set('Enter the full online class link, starting with https://'); return; }
+    this.api.put('/school/classes/' + code, { room: this.ef.room, classTeacherId: this.ef.classTeacherId }).subscribe({
+      next: () => this.api.put('/school/classes/' + code + '/online', { link, time: this.ef.onlineTime }).subscribe({ next: () => { this.toast.show('Class ' + code + ' updated'); this.editCode.set(null); this.load(); }, error: e => this.error.set(errText(e)) }),
+      error: e => this.error.set(errText(e)) });
   }
   ngOnInit() { this.load(); this.api.get<any[]>('/school/teachers').subscribe(t => this.teachers.set(t)); }
   load() { this.api.get('/school/dashboard').subscribe(d => this.rows.set(d.classes)); this.api.get<any[]>('/school/classes').subscribe(c => this.rooms.set(c)); }
