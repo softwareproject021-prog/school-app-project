@@ -103,7 +103,7 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
     @if (st(); as s) {
     <div class="grid2">
       <section class="panel"><div class="ph"><h2>Students absent today</h2><span class="muted" style="font-size:13px">{{ s.attendance.today.absent }} of {{ s.attendance.today.students }} · tap a colour for names</span></div>
-        <app-absence-pie title="Absent, class by class" [slices]="studentSlices()" [centerText]="s.attendance.today.absent + ''" sub="absent today" emptyText="Nobody absent" (pick)="openClass($event)"/>
+        <app-absence-pie title="Absent, class by class" [legend]="false" [slices]="studentSlices()" [centerText]="s.attendance.today.absent + ''" sub="absent today" emptyText="Nobody absent" (pick)="openClass($event)"/>
       </section>
       @if (s.teachers) {
       <section class="panel"><div class="ph"><h2>Teachers absent today</h2><span class="muted" style="font-size:13px">{{ s.teachers.onLeaveToday }} of {{ s.teachers.total }} · tap a colour for details</span></div>
@@ -161,7 +161,7 @@ export class DashboardComponent implements OnInit {
     const n = i - this.PAL.length + 1; return 'hsl(' + Math.round((n * 137.508 + 20) % 360) + ' ' + (62 + (n % 3) * 8) + '% ' + (44 + (n % 2) * 8) + '%)';
   }
   private label(code: string) { return 'Class ' + code.replace(/^(\d+)(\w)$/, '$1-$2'); }
-  studentSlices(): PieSlice[] { return this.st().attendance.classes.filter((c: any) => c.submitted && c.absentToday > 0).map((c: any) => ({ key: c.code, label: this.label(c.code), value: c.absentToday, color: this.colorOfClass(c.code) })); }
+  studentSlices(): PieSlice[] { return this.st().attendance.classes.filter((c: any) => c.submitted && c.absentToday > 0).map((c: any) => ({ key: c.code, label: this.label(c.code), short: c.code, value: c.absentToday, color: this.colorOfClass(c.code) })); }
   teacherSlices(): PieSlice[] { return this.st().teachers.teachers.filter((t: any) => t.onLeaveToday).map((t: any, i: number) => ({ key: String(t.id), label: t.name, value: 1, color: this.PAL[i % this.PAL.length] })); }
   openClass(code: string) {
     const c = this.st().attendance.classes.find((k: any) => k.code === code); if (!c) return;
