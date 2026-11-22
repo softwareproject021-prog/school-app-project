@@ -53,6 +53,7 @@ export const routes: Routes = [
       { path: 'marks', canActivate: [OT], loadComponent: () => import('./pages/shared/marks.component').then(m => m.MarksComponent) },
       { path: 'homework', canActivate: [OTP], loadComponent: () => import('./pages/shared/homework.component').then(m => m.HomeworkComponent) },
       { path: 'timetable', canActivate: [OTP], loadComponent: () => import('./pages/shared/timetable.component').then(m => m.TimetableComponent) },
+      { path: 'reports', canActivate: [O], loadComponent: () => import('./pages/org/reports.component').then(m => m.ReportsComponent) },
       { path: 'recordings', canActivate: [OTP], loadComponent: () => import('./pages/shared/recordings.component').then(m => m.RecordingsComponent) },
       { path: 'holidays', canActivate: [OTP], loadComponent: () => import('./pages/shared/holidays.component').then(m => m.HolidaysComponent) },
       { path: 'events', canActivate: [OTP], loadComponent: () => import('./pages/shared/events.component').then(m => m.EventsComponent) },
