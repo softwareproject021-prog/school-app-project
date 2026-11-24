@@ -83,20 +83,20 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
           <div class="col"><span class="pc">{{ t.pct == null ? '–' : t.pct + '%' }}</span><div class="bar" [class.none]="t.pct == null" [style.height.%]="t.pct == null ? 3 : t.pct"></div><small>{{ dayName(t.date) }}</small></div> }</div>
       </section>
 
-      <section class="panel"><div class="ph"><h2>Fee collection</h2><a class="btn sm" routerLink="/fees">Fee register</a></div>
+      <section class="panel"><div class="ph"><h2>Fee collection</h2><span class="bar" style="margin:0"><button class="btn sm" type="button" (click)="toggleFees()" [attr.aria-pressed]="hideFees()">{{ hideFees() ? 'Show fees' : 'Hide fees' }}</button><a class="btn sm" routerLink="/fees">Fee register</a></span></div>
         <div class="ring">
           <svg viewBox="0 0 42 42" role="img" [attr.aria-label]="'Collected ' + collectedPct() + ' percent of fees'">
             <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--line)" stroke-width="5"/>
             <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--brand)" stroke-width="5" stroke-linecap="round" [attr.stroke-dasharray]="collectedPct() + ' ' + (100 - collectedPct())" stroke-dashoffset="25"/>
           </svg>
-          <div><div class="big">{{ collectedPct() }}%</div><div class="legend">
-            <span><i class="dotk" style="background:var(--brand)"></i>Collected <b>{{ d.feesCollected | inr }}</b></span>
-            <span><i class="dotk" style="background:var(--line)"></i>Outstanding <b>{{ d.feesOutstanding | inr }}</b></span>
-            <span class="muted">Total billed <b>{{ d.feesBilled | inr }}</b></span></div></div>
+          <div><div class="big">{{ hideFees() ? '••%' : collectedPct() + '%' }}</div><div class="legend">
+            <span><i class="dotk" style="background:var(--brand)"></i>Collected <b>{{ hideFees() ? MASK : (d.feesCollected | inr) }}</b></span>
+            <span><i class="dotk" style="background:var(--line)"></i>Outstanding <b>{{ hideFees() ? MASK : (d.feesOutstanding | inr) }}</b></span>
+            <span class="muted">Total billed <b>{{ hideFees() ? MASK : (d.feesBilled | inr) }}</b></span></div></div>
         </div>
         <h3 style="margin:16px 0 6px;font-size:14px">Latest receipts</h3>
         @if (d.recentReceipts.length) { <div class="feed">@for (r of d.recentReceipts; track r.receiptNo) {
-          <div class="it"><span>{{ r.student }} <span class="muted">· {{ r.classCode | cls }} · {{ r.receiptNo }}{{ r.office ? ' · office' : '' }}</span></span><b class="mono">{{ r.amount | inr }}</b></div> }</div> }
+          <div class="it"><span>{{ r.student }} <span class="muted">· {{ r.classCode | cls }} · {{ r.receiptNo }}{{ r.office ? ' · office' : '' }}</span></span><b class="mono">{{ hideFees() ? MASK : (r.amount | inr) }}</b></div> }</div> }
         @else { <div class="muted">No payments yet.</div> }
       </section>
     </div>
@@ -147,6 +147,10 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
 })
 export class DashboardComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth);
+  MASK = '₹ ••••';
+  /** The principal can hide the fee amounts on the dashboard (for example when someone is looking over the shoulder); the latest receipts stay listed with their amounts hidden. */
+  hideFees = signal((() => { try { return localStorage.getItem('c1c-hide-fees') === '1'; } catch { return false; } })());
+  toggleFees() { const v = !this.hideFees(); this.hideFees.set(v); try { localStorage.setItem('c1c-hide-fees', v ? '1' : '0'); } catch { /* storage blocked: the choice lasts for this visit */ } }
   d = signal<any>(null); error = signal(''); today = longToday();
   collectedPct = computed(() => { const x = this.d(); return x && x.feesBilled ? Math.min(100, Math.round(x.feesCollected * 100 / x.feesBilled)) : 0; });
   school = () => this.auth.viewing()?.name ?? this.auth.user()?.schoolName ?? 'School';

@@ -5,9 +5,10 @@ import { Api, errText } from '../../core/api.service';
 import { Auth } from '../../core/auth.service';
 import { Toast } from '../../core/toast.service';
 import { InrPipe } from '../../core/format';
+import { StaffDocsComponent } from '../shared/staff-docs.component';
 
 @Component({
-  selector: 'app-schools', standalone: true, imports: [FormsModule, RouterLink, InrPipe],
+  selector: 'app-schools', standalone: true, imports: [FormsModule, RouterLink, InrPipe, StaffDocsComponent],
   template: `
   <div class="head"><div><h1>Schools on Campus1Cloud</h1><p class="sub">Every school you have sold access to. Search, filter, and open any school's data.</p></div>
     <a class="btn acc" routerLink="/add-school">+ Add school</a></div>
@@ -33,9 +34,10 @@ import { InrPipe } from '../../core/format';
       @if (error()) { <div class="err">{{ error() }}</div> }
       @if (rows().length === 0 && !loading()) { <div class="empty">No schools match. Clear the search or change a filter.</div> }
       @else {
-      <div class="tw"><table><thead><tr><th>School</th><th>City</th><th>Org admin</th><th>Plan</th><th class="n">Students</th><th class="n">Teachers</th><th>Status</th><th>Trial / renewal</th><th>Actions</th></tr></thead><tbody>
+      <div class="tw"><table><thead><tr><th>School</th><th>City</th><th>Principal</th><th>Principal contact</th><th>Documents</th><th>Plan</th><th class="n">Students</th><th class="n">Teachers</th><th>Status</th><th>Trial / renewal</th><th>Actions</th></tr></thead><tbody>
         @for (s of rows(); track s.id) {
-          <tr><td><b>{{ s.name }}</b></td><td>{{ s.city }}, <span class="muted">{{ s.state }}</span></td><td>{{ s.adminName }}</td>
+          <tr><td><b>{{ s.name }}</b></td><td>{{ s.city }}, <span class="muted">{{ s.state }}</span></td><td>{{ s.adminName }}</td><td class="mono">{{ s.adminContact || '-' }}</td>
+            <td><button class="btn sm" type="button" (click)="docs.set({ id: s.id, who: s.adminName + ' (' + s.name + ')' })">{{ s.adminDocuments ? 'View (' + s.adminDocuments + ')' : 'Add' }}</button></td>
             <td><select class="inl" [ngModel]="s.plan" (ngModelChange)="setPlan(s, $event)" [attr.aria-label]="'Plan for ' + s.name"><option>Basic</option><option>Standard</option><option>Premium</option></select> <span class="muted mono">{{ s.monthly | inr }}/mo</span></td><td class="n">{{ s.students }}</td><td class="n">{{ s.teachers }}</td>
             <td><span class="pill" [class.good]="s.status==='ACTIVE'" [class.warn]="s.status==='TRIAL'" [class.bad]="s.status==='SUSPENDED'">{{ label(s.status) }}</span></td>
             <td>@if (s.status === 'TRIAL' || s.trialDaysLeft != null) {
@@ -56,12 +58,13 @@ import { InrPipe } from '../../core/format';
       </tbody></table></div>
       }
     </section>
-  </div>`,
+  </div>
+  @if (docs(); as d) { <app-staff-docs [who]="d.who" ownerType="PRINCIPAL" [schoolId]="d.id" (closed)="docs.set(null); load()"/> }`,
 })
 export class SchoolsComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast); auth = inject(Auth);
   rows = signal<any[]>([]); sum = signal<any>(null); loading = signal(true); error = signal('');
-  q = ''; state = ''; plan = ''; status = '';
+  q = ''; state = ''; plan = ''; status = ''; docs = signal<any>(null);
   /** States seen so far, so a school in any state can be found. The list only grows while this page is open, so picking one never removes the others. */
   states = signal<string[]>(['Telangana', 'Andhra Pradesh', 'Karnataka', 'Tamil Nadu', 'Maharashtra']);
   confirmId = signal<number | null>(null); extendId = signal<number | null>(null); extendDays = 30;

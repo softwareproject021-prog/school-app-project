@@ -27,7 +27,7 @@ import { ClassPipe, DAYS, MAX_PERIODS, PERIODS, periodTime, todayIdx } from '../
             @let c = cell(di, p);
             <td [class.today]="di === today" [class.subbed]="c?.substitute">
               @if (edit() && canEdit()) {
-                <select class="inl" [ngModel]="c ? c.teacherId : null" (ngModelChange)="setSlot(di, p, $event)" [attr.aria-label]="'Teacher for ' + d + ' period ' + (p + 1)"><option [ngValue]="null">Free</option>@for (t of teachers(); track t.id) { <option [ngValue]="t.id">{{ t.name }} · {{ t.subject }}</option> }</select>
+                <select class="inl" [ngModel]="c ? c.teacherId : null" (ngModelChange)="setSlot(di, p, $event)" [attr.aria-label]="'Teacher for ' + d + ' period ' + (p + 1)"><option [ngValue]="null">Free</option>@for (t of teachersFor(); track t.id) { <option [ngValue]="t.id">{{ t.name }} · {{ t.subject }}</option> }</select>
               } @else if (c) { @if (byClass()) { <div class="s">{{ c.subject }}{{ c.substitute ? ' · sub' : '' }}</div><div class="t">{{ c.teacherName.replace('Mr. ', '').replace('Mrs. ', '') }}</div> }
                 @else { <div class="s">{{ c.classCode | cls }}</div><div class="t">{{ c.subject }}{{ c.substitute ? ' · substitute' : '' }}</div> } }
               @else if (!byClass()) { <span class="muted">Free</span> }
@@ -46,6 +46,8 @@ export class TimetableComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth); private route = inject(ActivatedRoute);
   role = this.auth.effectiveRole(); days = DAYS; max = MAX_PERIODS; time = periodTime; extra = signal(0); today = todayIdx();
   mode: 'class' | 'teacher' = 'class'; classCode = ''; teacherId: number | null = null;
+  /** Primary teachers (Nursery to class 5) are offered only for primary classes, Secondary teachers (6 to 10) only for the rest; teachers without a type are offered everywhere. */
+  teachersFor = () => { const g = this.classes().find(x => x.code === this.classCode)?.grade; return this.teachers().filter(t => !t.category || g == null || (t.category === 'PRIMARY') === (g <= 5)); };
   classes = signal<any[]>([]); teachers = signal<any[]>([]); slots = signal<any[]>([]);
   editable = signal<string[]>([]); edit = signal(false); error = signal('');
   byClass = () => this.role === 'PARENT' || (this.mode === 'class' && (this.role === 'ORG_ADMIN' || this.editable().length > 0));

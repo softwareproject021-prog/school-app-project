@@ -39,7 +39,7 @@ import { longToday } from '../../core/dates';
   <div class="head"><div><h1>Attendance</h1><p class="sub">{{ today }}. Everyone starts as present. Tap <b>A</b> for absentees, then submit.</p></div></div>
   <section class="panel">
     <div class="atop">
-      <div class="bar" style="margin:0"><select [(ngModel)]="classCode" (change)="load()" aria-label="Class">@for (c of classes(); track c) { <option [value]="c">Class {{ c | cls }}</option> }</select>
+      <div class="bar" style="margin:0"><select [(ngModel)]="classCode" (change)="load()" aria-label="Class">@for (c of classes(); track c) { <option [value]="c">Class {{ c | cls }}{{ strength()[c] != null ? ' · Strength ' + strength()[c] : '' }}</option> }</select>
         @if (sheet(); as s) { <span class="pill" [class.good]="s.submitted" [class.warn]="!s.submitted">{{ s.submitted ? 'Submitted today' : 'Not submitted yet' }}</span> }</div>
       <button class="btn" (click)="allPresent()">Mark all present</button>
     </div>
@@ -70,7 +70,7 @@ import { longToday } from '../../core/dates';
 })
 export class AttendanceComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth); private toast = inject(Toast); private route = inject(ActivatedRoute);
-  today = longToday(); classes = signal<string[]>([]); classCode = '';
+  today = longToday(); classes = signal<string[]>([]); strength = signal<Record<string, number>>({}); classCode = '';
   sheet = signal<any>(null); absent = signal<Set<number>>(new Set()); busy = signal(false); error = signal('');
   q = ''; onlyAbsent = signal(false);
   shown = () => (this.sheet()?.students ?? []).filter((x: any) => (!this.onlyAbsent() || this.absent().has(x.id)) && (!this.q.trim() || x.name.toLowerCase().includes(this.q.trim().toLowerCase())));
@@ -78,6 +78,7 @@ export class AttendanceComponent implements OnInit {
   presentCount = () => (this.sheet()?.students.length ?? 0) - this.absent().size;
   ngOnInit() {
     const want = this.route.snapshot.queryParamMap.get('classCode');
+    this.api.get<Record<string, number>>('/school/class-strength').subscribe({ next: s => this.strength.set(s), error: () => {} });
     const done = (list: string[]) => { this.classes.set(list); this.classCode = want && list.includes(want) ? want : list[0] ?? ''; this.load(); };
     if (this.auth.effectiveRole() === 'TEACHER') this.api.get('/portal/teacher').subscribe({ next: p => done(p.myClasses), error: e => this.error.set(errText(e)) });
     else this.api.get<any[]>('/school/classes').subscribe({ next: c => done(c.map(x => x.code)), error: e => this.error.set(errText(e)) });

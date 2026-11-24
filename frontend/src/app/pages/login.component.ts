@@ -3,11 +3,12 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../core/auth.service';
 import { errText } from '../core/api.service';
+import { PwComponent } from '../core/pw.component';
 import { EVENT_ART } from '../core/event-art';
 import { DomSanitizer } from '@angular/platform-browser';
 
 @Component({
-  selector: 'app-login', standalone: true, imports: [FormsModule, RouterLink],
+  selector: 'app-login', standalone: true, imports: [FormsModule, RouterLink, PwComponent],
   template: `
   <div class="auth">
     <div class="auth-hero">
@@ -18,7 +19,7 @@ import { DomSanitizer } from '@angular/platform-browser';
       <h2>Welcome back</h2>
       <p class="sub">Sign in with the login from your invitation.</p>
       <label>Email / login<input type="text" name="login" [(ngModel)]="login" autocomplete="username" autocapitalize="none" inputmode="email" placeholder="you@school.in"></label>
-      <label>Password<input type="password" name="password" [(ngModel)]="password" autocomplete="current-password"></label>
+      <label>Password<app-pw name="password" [(ngModel)]="password" autocomplete="current-password"/></label>
       @if (error()) { <div class="err">{{ error() }}</div> }
       <button class="btn pri big" type="submit" [disabled]="busy()">{{ busy() ? 'Signing in…' : 'Sign in' }}</button>
       <a routerLink="/forgot" class="forgot">Forgot password?</a>

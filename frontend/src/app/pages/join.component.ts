@@ -3,12 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Api, errText } from '../core/api.service';
 import { Auth } from '../core/auth.service';
+import { PwComponent } from '../core/pw.component';
 
 const WHO: Record<string, string> = { ORG_ADMIN: 'principal', TEACHER: 'teacher', PARENT: 'parent' };
 
 /** Page opened from an invitation link: the person sets their own password and is signed in. */
 @Component({
-  selector: 'app-join', standalone: true, imports: [FormsModule, RouterLink],
+  selector: 'app-join', standalone: true, imports: [FormsModule, RouterLink, PwComponent],
   template: `
   <header class="top"><div class="logo"><i>C</i>Campus1Cloud</div></header>
   <div class="plain">
@@ -20,8 +21,8 @@ const WHO: Record<string, string> = { ORG_ADMIN: 'principal', TEACHER: 'teacher'
           @if (i.schoolName) { <b>{{ i.schoolName }}</b> } @else { Campus1Cloud }
           as {{ who(i.role) }}. Your login will be <b>{{ i.login }}</b>.</p>
         <form class="form" style="margin-top:14px" (ngSubmit)="submit()">
-          <label>Choose a password<input type="password" name="pw" [(ngModel)]="pw" autocomplete="new-password" minlength="10" required></label>
-          <label>Repeat password<input type="password" name="pw2" [(ngModel)]="pw2" autocomplete="new-password" required></label>
+          <label>Choose a password<app-pw name="pw" [(ngModel)]="pw" autocomplete="new-password" [minlength]="10" [required]="true"/></label>
+          <label>Repeat password<app-pw name="pw2" [(ngModel)]="pw2" autocomplete="new-password" [required]="true"/></label>
           @if (error()) { <div class="err">{{ error() }}</div> }
           <div><button class="btn pri" type="submit" style="width:100%;padding:10px" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Set password & continue' }}</button></div>
         </form>
