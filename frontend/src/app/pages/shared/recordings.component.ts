@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Api, errText } from '../../core/api.service';
 import { Auth } from '../../core/auth.service';
 import { Toast } from '../../core/toast.service';
@@ -7,7 +8,7 @@ import { ClassPipe } from '../../core/format';
 import { isoToday } from '../../core/dates';
 
 @Component({
-  selector: 'app-recordings', standalone: true, imports: [FormsModule, ClassPipe],
+  selector: 'app-recordings', standalone: true, imports: [FormsModule, RouterLink, ClassPipe],
   styles: [`.rc{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line,#e5e9f0)}.rc:last-child{border:0}
     .rp{width:42px;height:42px;border-radius:12px;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:17px;flex:none}
     .rm{flex:1;min-width:0}.rm h3{margin:0;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rm p{margin:2px 0 0;font-size:12.5px}`],
@@ -15,6 +16,13 @@ import { isoToday } from '../../core/dates';
   <div class="head"><div><h1>Recorded classes</h1><p class="sub">{{ sub }}</p></div>
     @if (canAdd) { <button class="btn acc" (click)="show.set(!show())">{{ show() ? 'Close form' : '+ Add recording' }}</button> }</div>
   <div class="stack">
+    <section class="panel"><div class="ph"><h2>Online classes</h2>@if (isOrg) { <a class="btn sm" routerLink="/classes">Set links in Classes</a> }</div>
+      @for (o of online(); track o.code) {
+        <div class="rc"><div class="rp" aria-hidden="true">●</div>
+          <div class="rm"><h3>{{ o.code | cls }}</h3><p class="muted">{{ o.onlineTime || 'Timing not set' }}</p></div>
+          <a class="btn sm acc" [href]="o.onlineLink" target="_blank" rel="noopener noreferrer">Join</a></div>
+      } @empty { <div class="empty">{{ isOrg ? 'No online class link yet. Add one for a class in Classes.' : 'No online class link yet.' }}</div> }
+    </section>
     @if (canAdd && show()) {
       <section class="panel"><div class="ph"><h2>Add a recorded class</h2></div>
         <form class="form" (ngSubmit)="add()">
@@ -44,12 +52,18 @@ import { isoToday } from '../../core/dates';
 export class RecordingsComponent implements OnInit {
   private api = inject(Api); private auth = inject(Auth); private toast = inject(Toast);
   canAdd = ['ORG_ADMIN', 'TEACHER'].includes(this.auth.effectiveRole() as string);
+  isOrg = this.auth.effectiveRole() === 'ORG_ADMIN';
+  online = signal<any[]>([]);
   today = isoToday();
-  sub = this.canAdd ? 'Add a link to a class recording and the parents of that class are told.' : 'Watch past classes again, any time.';
+  sub = this.canAdd ? 'See the online class link and the recordings of each class. Add a recording link and the parents of that class are told.' : 'Watch past classes again, any time.';
   rows = signal<any[]>([]); classes = signal<any[]>([]); show = signal(false); error = signal(''); busy = signal(false); confirmId = signal<number | null>(null); filter = signal('');
   f: any = this.blank();
   blank() { return { classCode: '', subject: '', title: '', link: '', date: isoToday(), note: '', notifyParents: true }; }
-  ngOnInit() { if (this.canAdd) this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); this.load(); }
+  ngOnInit() {
+    if (this.canAdd) this.api.get<any[]>('/school/classes').subscribe(c => { this.classes.set(c); this.online.set(c.filter(x => x.onlineLink)); });
+    else this.api.get<any>('/portal/parent').subscribe({ next: d => { if (d?.onlineLink) this.online.set([{ code: d.classCode, onlineLink: d.onlineLink, onlineTime: d.onlineTime }]); }, error: () => {} });
+    this.load();
+  }
   load() { this.api.get<any[]>('/recordings', this.filter() ? { classCode: this.filter() } : {}).subscribe(r => this.rows.set(r)); }
   add() {
     this.error.set('');
