@@ -18,15 +18,15 @@ const ORG: Item[] = [
   I('Today', '/leave', 'Leave & substitutes', 'leave'),
   I('School', '/fees', 'Fees', 'rupee', 'Fees'), I('School', '/reports', 'Reports', 'clipboard'), I('School', '/classes', 'Classes', 'school'), I('School', '/teachers', 'Teachers', 'user'), I('School', '/admission', 'New admission', 'plus'), I('School', '/students', 'Students', 'users'), I('School', '/promote', 'Promote session', 'swap'),
   I('School', '/timetable', 'Timetable', 'calendar'), I('School', '/marks', 'Marks', 'book'), I('School', '/homework', 'Homework', 'clipboard'), I('School', '/invites', 'Invites', 'mail'),
-  I('Campus', '/store', 'Store', 'box'), I('Campus', '/syllabus', 'Syllabus', 'book'), I('Campus', '/recordings', 'Recorded classes', 'book'), I('Campus', '/holidays', 'Holidays', 'calendar'), I('Campus', '/events', 'Events', 'calendar'), I('Campus', '/sports', 'Sports', 'trophy'), I('Campus', '/transport', 'Transport', 'bus'), I('Campus', '/notifications', 'Notifications', 'bell')];
+  I('Campus', '/store', 'Store', 'box'), I('Campus', '/examinations', 'Examinations', 'clipboard'), I('Campus', '/syllabus', 'Syllabus', 'book'), I('Campus', '/recordings', 'Recorded classes', 'book'), I('Campus', '/holidays', 'Holidays', 'calendar'), I('Campus', '/events', 'Events', 'calendar'), I('Campus', '/sports', 'Sports', 'trophy'), I('Campus', '/transport', 'Transport', 'bus'), I('Campus', '/notifications', 'Notifications', 'bell')];
 const TEACHER: Item[] = [
   I('My day', '/today', 'Today', 'today', 'Today'), I('My day', '/attendance', 'Attendance', 'check', 'Attendance'), I('My day', '/marks', 'Marks', 'book', 'Marks'), I('My day', '/my-students', 'My students', 'users', 'Students'),
   I('My day', '/homework', 'Homework', 'clipboard'), I('My day', '/timetable', 'My timetable', 'calendar'), I('My day', '/transport', 'Bus duty', 'bus'),
-  I('Me', '/my-leave', 'Leave requests', 'leave'), I('Me', '/inbox', 'Messages', 'mail'), I('Me', '/syllabus', 'Syllabus', 'book'), I('Me', '/recordings', 'Recorded classes', 'book'), I('Me', '/holidays', 'Holidays', 'calendar'), I('Me', '/events', 'Events', 'calendar')];
+  I('Me', '/my-leave', 'Leave requests', 'leave'), I('Me', '/inbox', 'Messages', 'mail'), I('Me', '/examinations', 'Examinations', 'clipboard'), I('Me', '/syllabus', 'Syllabus', 'book'), I('Me', '/recordings', 'Recorded classes', 'book'), I('Me', '/holidays', 'Holidays', 'calendar'), I('Me', '/events', 'Events', 'calendar')];
 const PARENT: Item[] = [
   I('My child', '/home', 'Home', 'home', 'Home'), I('My child', '/child-marks', 'Marks', 'book', 'Marks'), I('My child', '/child-fees', 'Fees', 'rupee', 'Fees'), I('My child', '/timetable', 'Timetable', 'calendar', 'Timetable'),
   I('My child', '/homework', 'Homework', 'clipboard'),
-  I('School', '/syllabus', 'Syllabus', 'book'), I('School', '/recordings', 'Recorded classes', 'book'), I('School', '/holidays', 'Holidays', 'calendar'), I('School', '/events', 'Events', 'calendar'), I('School', '/transport', 'School bus', 'bus'), I('School', '/inbox', 'Messages', 'mail')];
+  I('School', '/examinations', 'Examinations', 'clipboard'), I('School', '/syllabus', 'Syllabus', 'book'), I('School', '/recordings', 'Recorded classes', 'book'), I('School', '/holidays', 'Holidays', 'calendar'), I('School', '/events', 'Events', 'calendar'), I('School', '/transport', 'School bus', 'bus'), I('School', '/inbox', 'Messages', 'mail')];
 
 @Component({
   selector: 'app-shell', standalone: true, imports: [RouterOutlet, RouterLink, CardifyDirective],

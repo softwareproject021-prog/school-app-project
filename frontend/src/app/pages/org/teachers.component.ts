@@ -38,16 +38,36 @@ import { StaffDocsComponent } from '../shared/staff-docs.component';
             <td>{{ t.subject }}</td><td class="mono">{{ t.phone }}</td>
             <td><button class="btn sm" type="button" (click)="docs.set({ type: 'TEACHER', id: t.id, who: t.name })">{{ t.documents ? 'View (' + t.documents + ')' : 'Add' }}</button></td><td class="n">{{ t.periodsPerWeek }}</td><td class="n">{{ t.periodsToday }}</td>
             <td><span class="pill" [class.warn]="t.onLeave" [class.good]="!t.onLeave">{{ t.onLeave ? 'On leave' : 'In school' }}</span></td>
-            <td>@if (t.periodsPerWeek === 0) { @if (confirmId() === t.id) { <button class="btn sm danger" (click)="remove(t)">Confirm remove</button> } @else { <button class="btn sm" (click)="confirmId.set(t.id)">Remove</button> } }</td></tr> }
+            <td><button class="btn sm" type="button" (click)="openEdit(t)" [attr.aria-label]="'Edit ' + t.name">Edit</button> @if (t.periodsPerWeek === 0) { @if (confirmId() === t.id) { <button class="btn sm danger" (click)="remove(t)">Confirm remove</button> } @else { <button class="btn sm" (click)="confirmId.set(t.id)">Remove</button> } }</td></tr> }
       </tbody></table></div>
     </section>
   </div>
+  @if (edit(); as e) {
+    <div class="ov" (click)="edit.set(null)" (keydown.escape)="edit.set(null)"><div class="dlg" role="dialog" aria-modal="true" aria-label="Edit teacher" (click)="$event.stopPropagation()">
+      <h2 style="margin:0 0 10px">Edit teacher</h2>
+      <form class="form" (ngSubmit)="saveEdit()">
+        <label>Name<input type="text" name="en" [(ngModel)]="e.name" maxlength="80" required></label>
+        <label>Subject<select name="es" [(ngModel)]="e.subject">@for (s of subjectsWith(e.subject); track s) { <option>{{ s }}</option> }</select></label>
+        <label>Teacher type<select name="ec" [(ngModel)]="e.category"><option value="NONE">Not set (no restriction)</option><option value="PRIMARY">Primary (Nursery, LKG, UKG and classes 1 to 5)</option><option value="SECONDARY">Secondary (classes 6 to 10)</option></select></label>
+        <label>Phone<input type="text" name="ep" [(ngModel)]="e.phone" maxlength="20" placeholder="+91 98xxx xxxxx"></label>
+        @if (editError()) { <div class="err" role="alert">{{ editError() }}</div> }
+        <div class="bar" style="margin:0"><button class="btn pri" type="submit" [disabled]="editBusy()">{{ editBusy() ? 'Saving…' : 'Save changes' }}</button><button class="btn" type="button" (click)="edit.set(null)">Cancel</button></div>
+      </form></div></div> }
   @if (docs(); as d) { <app-staff-docs [who]="d.who" [ownerType]="d.type" [ownerId]="d.id ?? null" (closed)="docs.set(null); load()"/> }`,
 })
 export class TeachersComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast);
   subjects = SUBJECTS; rows = signal<any[]>([]); showForm = signal(false); confirmId = signal<number | null>(null);
   q = ''; subject = ''; type = ''; docs = signal<any>(null); f = { name: '', subject: 'Maths', phone: '', login: '', category: 'PRIMARY' }; error = signal(''); link = signal(''); emailOn = signal(false); private t: any;
+  edit = signal<any>(null); editError = signal(''); editBusy = signal(false);
+  subjectsWith(cur: string) { return this.subjects.includes(cur) || !cur ? this.subjects : [cur, ...this.subjects]; }
+  openEdit(t: any) { this.editError.set(''); this.edit.set({ id: t.id, name: t.name, subject: t.subject, phone: t.phone ?? '', category: t.category || 'NONE' }); }
+  saveEdit() {
+    const e = this.edit(); if (!e) return; this.editError.set(''); this.editBusy.set(true);
+    this.api.put<any>('/school/teachers/' + e.id, { name: e.name, subject: e.subject, phone: e.phone, category: e.category }).subscribe({
+      next: () => { this.editBusy.set(false); this.edit.set(null); this.toast.show('Teacher updated'); this.load(); },
+      error: x => { this.editBusy.set(false); this.editError.set(errText(x)); } });
+  }
   ngOnInit() { this.load(); }
   typed() { clearTimeout(this.t); this.t = setTimeout(() => this.load(), 250); }
   shown = () => this.rows().filter(t => !this.type || t.category === this.type);

@@ -6,7 +6,7 @@ import { InrPipe, ClassPipe } from '../../core/format';
 import { longToday } from '../../core/dates';
 import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component';
 
-/** The principal's home: a greeting, quick actions, today's attendance, fee collection, the week's attendance trend, and what needs attention. */
+/** The principal's home: a greeting, quick actions, today's attendance, fee collection, and what needs attention. */
 @Component({
   selector: 'app-dashboard', standalone: true, imports: [RouterLink, InrPipe, ClassPipe, AbsencePieComponent],
   styles: [`
@@ -27,11 +27,6 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
     .ring .big{font:800 24px var(--mono)}
     .legend{display:grid;gap:4px;font-size:13px;font-weight:700}.legend > div{white-space:nowrap}.legend b{font-family:var(--mono);font-weight:800}
     .dotk{display:inline-block;width:10px;height:10px;border-radius:99px;margin-right:6px}
-    .trend{display:flex;align-items:flex-end;gap:8px;height:120px;margin-top:6px}
-    .trend .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
-    .trend .bar{width:100%;max-width:34px;border-radius:8px 8px 3px 3px;background:var(--grad);min-height:4px}
-    .trend .bar.none{background:var(--line)}
-    .trend small{font-size:11px;color:var(--muted)}.trend .pc{font:600 11px var(--mono)}
     .rings{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{background:var(--sunk);border:1px solid var(--line);padding:4px 12px;border-radius:99px;font-size:14px}
     h3{font:600 15px/1.3 var(--display);margin:16px 0 8px}
     .ov{position:fixed;inset:0;z-index:60;background:rgb(10 20 45/.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:fade .15s}
@@ -78,9 +73,6 @@ import { AbsencePieComponent, PieSlice } from '../../core/absence-pie.component'
             <span><i class="dotk" style="background:var(--good)"></i>Present <b>{{ d.present }}</b></span><span><i class="dotk" style="background:var(--bad)"></i>Absent <b>{{ d.absent }}</b></span>
             <span><i class="dotk" style="background:var(--line)"></i>Not submitted <b>{{ d.classesNotSubmitted }}</b> {{ d.classesNotSubmitted === 1 ? 'class' : 'classes' }}</span></div></div>
         </div>
-        <div class="muted" style="margin-top:14px;font-size:13px">Last 7 days</div>
-        <div class="trend">@for (t of d.attendanceTrend; track t.date) {
-          <div class="col"><span class="pc">{{ t.pct == null ? '–' : t.pct + '%' }}</span><div class="bar" [class.none]="t.pct == null" [style.height.%]="t.pct == null ? 3 : t.pct"></div><small>{{ dayName(t.date) }}</small></div> }</div>
       </section>
 
       <section class="panel"><div class="ph"><h2>Fee collection</h2><span class="bar" style="margin:0"><button class="btn sm" type="button" (click)="toggleFees()" [attr.aria-pressed]="hideFees()">{{ hideFees() ? 'Show fees' : 'Hide fees' }}</button><a class="btn sm" routerLink="/fees">Fee register</a></span></div>
@@ -155,7 +147,6 @@ export class DashboardComponent implements OnInit {
   collectedPct = computed(() => { const x = this.d(); return x && x.feesBilled ? Math.min(100, Math.round(x.feesCollected * 100 / x.feesBilled)) : 0; });
   school = () => this.auth.viewing()?.name ?? this.auth.user()?.schoolName ?? 'School';
   greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; };
-  dayName(iso: string) { return new Date(iso + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' }); }
   st = signal<any>(null); pop = signal<{ title: string; sub: string; color: string; rows: { name: string; ini: string; note?: string }[] } | null>(null);
   private readonly PAL = ['#1d4ed8', '#e11d48', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#ea580c', '#65a30d', '#4f46e5', '#0d9488', '#b45309'];
   private ini = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
