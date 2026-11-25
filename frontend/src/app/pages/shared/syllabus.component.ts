@@ -9,7 +9,8 @@ const LABEL: Record<string, string> = { TODO: 'Not started', DOING: 'In progress
 
 @Component({
   selector: 'app-syllabus', standalone: true, imports: [FormsModule, ClassPipe],
-  styles: [`.sg{display:flex;flex-direction:column;gap:6px}.sh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.sh h2{margin:0}
+  styles: [`.sumt{margin:4px 0 14px}.sumt .sp{display:flex;align-items:center;gap:10px;min-width:150px}.sumt .sp .pb{flex:1;margin:0}.sumt tr.tot td{border-top:2px solid var(--line);background:var(--surface-2,transparent)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    .sg{display:flex;flex-direction:column;gap:6px}.sh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.sh h2{margin:0}
     .pb{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:6px 0 4px}.pb i{display:block;height:100%;background:var(--good,#1f9d63);border-radius:99px}
     .tp{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.tp .t{flex:1;min-width:180px}.tp .t b{font-weight:600}.tp .t span{display:block;font-size:12px;color:var(--muted)}
     .st{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden}.st button{border:0;background:var(--surface);color:var(--ink);padding:6px 11px;font-weight:600;font-size:13px;cursor:pointer}
@@ -26,6 +27,14 @@ const LABEL: Record<string, string> = { TODO: 'Not started', DOING: 'In progress
         @else if (classCode) { <span class="pill good">Class {{ classCode | cls }}</span> }
         @if (rows().length) { <span class="muted">{{ doneCount() }} of {{ rows().length }} topics completed ({{ pct() }}%)</span> }
       </div>
+      @if (rows().length) {
+        <div class="tw"><table class="sumt"><caption class="sr">Syllabus summary by subject</caption><thead><tr><th>Subject</th><th class="n">Topics</th><th class="n">Completed</th><th class="n">In progress</th><th class="n">Not started</th><th>Progress</th></tr></thead><tbody>
+          @for (g of summary(); track g.subject) {
+            <tr><td><b>{{ g.subject }}</b></td><td class="n">{{ g.total }}</td><td class="n">{{ g.done }}</td><td class="n">{{ g.doing }}</td><td class="n">{{ g.todo }}</td>
+              <td><span class="sp"><span class="pb" role="img" [attr.aria-label]="g.subject + ' ' + g.pct + ' percent'"><i [style.width.%]="g.pct"></i></span><b class="mono">{{ g.pct }}%</b></span></td></tr> }
+          <tr class="tot"><td><b>Overall</b></td><td class="n">{{ rows().length }}</td><td class="n">{{ doneCount() }}</td><td class="n">{{ countOf('DOING') }}</td><td class="n">{{ countOf('TODO') }}</td>
+            <td><span class="sp"><span class="pb" role="img" [attr.aria-label]="'Overall ' + pct() + ' percent'"><i [style.width.%]="pct()"></i></span><b class="mono">{{ pct() }}%</b></span></td></tr>
+        </tbody></table></div> }
       @if (subjects().length > 1) { <div class="chips" role="group" aria-label="Subject filter"><button type="button" [class.on]="!subject()" (click)="subject.set('')">All subjects</button>
         @for (s of subjects(); track s) { <button type="button" [class.on]="subject() === s" (click)="subject.set(s)">{{ s }}</button> }</div> }
       @for (g of groups(); track g.subject) {
@@ -61,6 +70,10 @@ export class SyllabusComponent implements OnInit {
   subjectOptions = computed(() => [...new Set([...this.subjects(), ...SUBJECTS])]);
   doneCount = computed(() => this.rows().filter(r => r.status === 'DONE').length);
   pct = computed(() => this.rows().length ? Math.round(this.doneCount() * 100 / this.rows().length) : 0);
+  countOf = (s: string) => this.rows().filter(r => r.status === s).length;
+  summary = computed(() => this.subjects().map(s => {
+    const items = this.rows().filter(r => r.subject === s), done = items.filter(r => r.status === 'DONE').length, doing = items.filter(r => r.status === 'DOING').length;
+    return { subject: s, total: items.length, done, doing, todo: items.length - done - doing, pct: items.length ? Math.round(done * 100 / items.length) : 0 }; }));
   groups = computed(() => this.subjects().filter(s => !this.subject() || s === this.subject()).map(s => {
     const items = this.rows().filter(r => r.subject === s), done = items.filter(r => r.status === 'DONE').length;
     return { subject: s, items, done, pct: items.length ? Math.round(done * 100 / items.length) : 0 }; }));
