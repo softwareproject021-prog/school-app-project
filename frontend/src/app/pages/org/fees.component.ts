@@ -8,9 +8,10 @@ import { ClassPipe, InrPipe } from '../../core/format';
 @Component({
   selector: 'app-fees', standalone: true, imports: [FormsModule, DecimalPipe, ClassPipe, InrPipe],
   template: `
-  <div class="head"><div><h1>Fees</h1><p class="sub">Academic year 2026–27.</p></div><button class="btn acc" (click)="remind()">Send reminders to filtered list</button></div>
+  <div class="head"><div><h1>Fees</h1><p class="sub">Academic year 2026–27. Start with the fee structure, then collect payments.</p></div><button class="btn acc" (click)="remind()">Send reminders to filtered list</button></div>
   <div class="stack">
-    <div class="ftabs" role="tablist"><button role="tab" [class.on]="tab()==='reg'" (click)="go('reg')">Fee register</button><button role="tab" [class.on]="tab()==='disc'" (click)="go('disc')">Discounts@if (dd()?.students) { <span class="cnt">{{ dd().students }}</span> }</button><button role="tab" [class.on]="tab()==='bulk'" (click)="go('bulk')">Discount many</button><button role="tab" [class.on]="tab()==='plan'" (click)="go('plan')">Fee structure</button></div>
+    <ol class="flow" aria-label="How fees work"><li><b>1</b><span>Set the <em>fee structure</em> for each class and bus</span></li><li><b>2</b><span>Student fee = Class fee + Bus + Hostel</span></li><li><b>3</b><span>Give a <em>discount</em> if needed (principal only)</span></li><li><b>4</b><span><em>Collect</em> payments and give receipts</span></li></ol>
+    <div class="ftabs" role="tablist"><button role="tab" [class.on]="tab()==='plan'" (click)="go('plan')">1. Fee structure</button><button role="tab" [class.on]="tab()==='reg'" (click)="go('reg')">2. Collect fees</button><button role="tab" [class.on]="tab()==='disc'" (click)="go('disc')">3. Discounts@if (dd()?.students) { <span class="cnt">{{ dd().students }}</span> }</button><button role="tab" [class.on]="tab()==='bulk'" (click)="go('bulk')">Discount many</button></div>
     @if (tab()==='reg') { @if (d(); as d) {
     <div class="kpis"><div class="kpi"><div class="l">Fee before discount</div><div class="v">{{ d.gross | inr }}</div></div><div class="kpi warn"><div class="l">Discounts</div><div class="v">{{ d.discount | inr }}</div></div><div class="kpi"><div class="l">Billed</div><div class="v">{{ d.billed | inr }}</div></div><div class="kpi good"><div class="l">Collected</div><div class="v">{{ d.collected | inr }}</div></div>
       <div class="kpi bad"><div class="l">Outstanding</div><div class="v">{{ d.outstanding | inr }}</div></div><div class="kpi"><div class="l">Collection</div><div class="v">{{ d.billed ? (d.collected / d.billed * 100 | number:'1.0-0') : 0 }}%</div></div></div>
@@ -20,7 +21,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
         <select [(ngModel)]="status" (change)="load()" aria-label="Fee status"><option value="due">Fully due</option><option value="partial">Partly paid</option><option value="paid">Paid</option><option value="all">All</option></select></div>
       @if (d.rows.length === 0) { <div class="empty">No students match.</div> } @else {
       <p class="muted" style="margin:0 0 8px">{{ d.rows.length }} students</p>
-      <div class="tw"><table><thead><tr><th>Class</th><th>Name</th><th>Parent phone</th><th class="n">Annual fee</th><th class="n">Discount</th><th class="n">Fee payable</th><th class="n">Paid</th><th class="n">Due</th><th>Status</th><th></th></tr></thead><tbody>
+      <div class="tw"><table><thead><tr><th>Class</th><th>Name</th><th>Parent phone</th><th class="n">Total fee</th><th class="n">Discount</th><th class="n">To pay</th><th class="n">Paid</th><th class="n">Balance due</th><th>Status</th><th></th></tr></thead><tbody>
         @for (r of d.rows; track r.studentId) {
           <tr><td>{{ r.classCode | cls }}</td><td>{{ r.name }}</td><td class="mono">{{ r.phone }}</td><td class="n">{{ r.feeTotal | inr }}<div class="muted brk">Tuition {{ r.classFee | inr }}@if (r.busFee) { + Bus {{ r.busFee | inr }} }@if (r.hostelFee) { + Hostel {{ r.hostelFee | inr }} }</div></td>
             <td class="n">{{ r.feeDiscount ? ('−' + (r.feeDiscount | inr)) : '—' }}@if (r.feeDiscount) { <div class="muted brk">{{ pctOf(r) }}% · {{ r.discountReason }}@if (r.discountBy) { · by {{ r.discountBy }} } </div> }</td><td class="n"><b>{{ r.feeNet | inr }}</b></td><td class="n">{{ r.feePaid | inr }}</td><td class="n">{{ r.feeDue | inr }}</td>
@@ -104,13 +105,15 @@ import { ClassPipe, InrPipe } from '../../core/format';
       </section> }
     @if (tab()==='plan') {
       <section class="panel"><div class="ph"><h2>Fee for each class</h2></div>
-        <div class="note" style="margin-bottom:10px">Set the yearly fee of a class and it is applied to every student in it. Parents see their child's class fee on their Fees page.
+        <div class="note" style="margin-bottom:10px"><b>Step 1.</b> Set the yearly fee of a class and it is applied to every student in it. Parents see their child's class fee on their Fees page.
           A student is skipped if the new fee is less than their discount or what they have already paid.</div>
         @if (plan(); as pl) {
-          <div class="tw"><table><thead><tr><th>Class</th><th class="n">Students</th><th class="n">Yearly fee (Rs)</th><th></th></tr></thead><tbody>
+          <div class="kpis"><div class="kpi"><div class="l">Classes with a fee set</div><div class="v">{{ setCount(pl.classes) }} of {{ pl.classes.length }}</div></div><div class="kpi good"><div class="l">Expected class fees (before bus, hostel, discount)</div><div class="v">{{ expected(pl.classes) | inr }}</div></div></div>
+          <div class="tw"><table><thead><tr><th>Class</th><th class="n">Students</th><th class="n">Yearly fee per student (Rs)</th><th class="n">Expected from class</th><th></th></tr></thead><tbody>
             @for (c of pl.classes; track c.code) {
               <tr><td><b>{{ c.code | cls }}</b></td><td class="n">{{ c.students }}</td>
                 <td class="n"><input type="number" min="0" class="inl" [value]="c.fee || ''" (input)="setIn('c' + c.code, $any($event.target).value)" [attr.aria-label]="'Yearly fee for class ' + c.code" placeholder="not set"></td>
+                <td class="n">{{ c.fee ? (c.fee * c.students | inr) : '—' }}</td>
                 <td><button class="btn sm pri" [disabled]="pBusy() === 'c' + c.code" (click)="saveClassFee(c)">Save</button></td></tr> }
           </tbody></table></div> } @else { <div class="empty">Loading…</div> }
       </section>
@@ -147,7 +150,8 @@ import { ClassPipe, InrPipe } from '../../core/format';
           @if (p.recordedBy) { @if (voidId() === p.id) { <button class="btn sm danger" type="button" (click)="voidReceipt(p)">Yes, cancel</button><button class="btn sm" type="button" (click)="voidId.set(null)">No</button> } @else { <button class="btn sm" type="button" (click)="voidId.set(p.id)">Cancel receipt</button> } }</li> }</ul></details> }
     </div></div>
   }`,
-  styles: [`.brk{font-size:11px;font-weight:600;white-space:normal;min-width:150px;max-width:210px;margin-left:auto;line-height:1.3}
+  styles: [`.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;list-style:none;margin:0;padding:0}.flow li{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px}.flow b{flex:none;width:24px;height:24px;border-radius:99px;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:12px}.flow em{font-style:normal;font-weight:700}@media (max-width:760px){.flow{grid-template-columns:1fr 1fr}}
+    .brk{font-size:11px;font-weight:600;white-space:normal;min-width:150px;max-width:210px;margin-left:auto;line-height:1.3}
     .eq{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:6px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:13px}.eq i{font-style:normal;color:var(--muted)}.eq .pay{background:var(--good-soft);color:var(--good);padding:2px 9px;border-radius:99px}.ov{position:fixed;inset:0;z-index:60;background:rgb(10 20 45/.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;animation:fade .15s}
     .dlg{width:min(520px,100%);max-height:92vh;overflow:auto;background:var(--surface);border-radius:20px;box-shadow:0 24px 60px rgb(10 20 45/.4);animation:rise .18s}
     .dlg header{display:flex;gap:12px;align-items:center;padding:16px 18px;background:var(--grad);color:#fff;position:sticky;top:0}
@@ -174,7 +178,7 @@ import { ClassPipe, InrPipe } from '../../core/format';
 })
 export class FeesComponent implements OnInit {
   private api = inject(Api); private toast = inject(Toast);
-  tab = signal<'reg' | 'disc' | 'bulk' | 'plan'>('reg');
+  tab = signal<'reg' | 'disc' | 'bulk' | 'plan'>('plan');
   plan = signal<any>(null); pBusy = signal(''); private pIn: Record<string, string> = {};
   bClass = ''; bMode = 'percent'; bVal = 0; bWhy = ''; bConfirm = signal(false); bBusy = signal(false); bResult = signal<any>(null); dd = signal<any>(null); dq = ''; dclass = ''; private td: any;
   rc = signal<any>(null); rList = signal<any[]>([]); rErr = signal(''); rBusy = signal(false); voidId = signal<number | null>(null);
@@ -193,7 +197,9 @@ export class FeesComponent implements OnInit {
     this.api.put('/fees/hostel/' + r.studentId, { fee: Number(this.hAmt) || 0, room: this.hRoom }).subscribe({ next: () => { this.toast.show(Number(this.hAmt) ? 'Hostel fee saved' : 'Hostel fee removed'); this.hs.set(null); this.load(); }, error: e => this.toast.show(errText(e), 6000) });
   }
   d = signal<any>(null); classes = signal<any[]>([]); q = ''; classCode = ''; status = 'due'; private t: any;
-  ngOnInit() { this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); this.load(); this.loadD(); }
+  ngOnInit() { this.api.get<any[]>('/school/classes').subscribe(c => this.classes.set(c)); this.load(); this.loadD(); this.loadPlan(); }
+  setCount = (cs: any[]) => cs.filter(c => c.fee > 0).length;
+  expected = (cs: any[]) => cs.reduce((a, c) => a + (c.fee || 0) * (c.students || 0), 0);
   go(t: 'reg' | 'disc' | 'bulk' | 'plan') { this.tab.set(t); this.ed.set(null); this.bResult.set(null); this.bConfirm.set(false); if (t === 'disc') this.loadD(); else if (t === 'reg') this.load(); else if (t === 'plan') this.loadPlan(); }
   typedD() { clearTimeout(this.td); this.td = setTimeout(() => this.loadD(), 250); }
   loadD() { this.api.get('/fees/discounts', { q: this.dq, classCode: this.dclass }).subscribe(r => this.dd.set(r)); }
